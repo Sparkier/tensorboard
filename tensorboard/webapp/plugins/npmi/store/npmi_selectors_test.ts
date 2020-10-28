@@ -31,6 +31,10 @@ import {
   getShowHiddenAnnotations,
   getSidebarWidth,
   getSidebarExpanded,
+  getViewActive,
+  getEmbeddingsMetric,
+  getEmbeddingsSidebarExpanded,
+  getEmbeddingsSidebarWidth,
 } from './npmi_selectors';
 import {DataLoadState, Operator, SortOrder, ArithmeticKind} from './npmi_types';
 import {createNpmiState, createState} from '../testing';
@@ -360,22 +364,6 @@ describe('npmi selectors', () => {
     });
   });
 
-  describe('getSidebarExpanded', () => {
-    it('returns correct true state', () => {
-      const state = createState(createNpmiState());
-      expect(getSidebarExpanded(state)).toBeTrue();
-    });
-
-    it('returns correct state', () => {
-      const state = createState(
-        createNpmiState({
-          sidebarExpanded: false,
-        })
-      );
-      expect(getSidebarExpanded(state)).toBeFalse();
-    });
-  });
-
   describe('getShowCounts', () => {
     it('returns correct true state', () => {
       const state = createState(createNpmiState());
@@ -408,6 +396,22 @@ describe('npmi selectors', () => {
     });
   });
 
+  describe('getViewActive', () => {
+    it('returns correct initial state', () => {
+      const state = createState(createNpmiState());
+      expect(getViewActive(state)).toBe('default');
+    });
+
+    it('returns correct state', () => {
+      const state = createState(
+        createNpmiState({
+          viewActive: 'embeddings',
+        })
+      );
+      expect(getViewActive(state)).toBe('embeddings');
+    });
+  });
+
   describe('getSidebarWidth', () => {
     it('returns correct initial state', () => {
       const state = createState(createNpmiState());
@@ -421,6 +425,70 @@ describe('npmi selectors', () => {
         })
       );
       expect(getSidebarWidth(state)).toBe(100);
+    });
+  });
+
+  describe('getSidebarExpanded', () => {
+    it('returns correct true state', () => {
+      const state = createState(createNpmiState());
+      expect(getSidebarExpanded(state)).toBeTrue();
+    });
+
+    it('returns correct state', () => {
+      const state = createState(
+        createNpmiState({
+          sidebarExpanded: false,
+        })
+      );
+      expect(getSidebarExpanded(state)).toBeFalse();
+    });
+  });
+
+  describe('getEmbeddingsMetric', () => {
+    it('returns correct initial state', () => {
+      const state = createState(createNpmiState());
+      expect(getEmbeddingsMetric(state)).toBe('');
+    });
+
+    it('returns correct state', () => {
+      const state = createState(
+        createNpmiState({
+          embeddingsMetric: 'test',
+        })
+      );
+      expect(getEmbeddingsMetric(state)).toBe('test');
+    });
+  });
+
+  describe('getEmbeddingsSidebarWidth', () => {
+    it('returns correct initial state', () => {
+      const state = createState(createNpmiState());
+      expect(getEmbeddingsSidebarWidth(state)).toBe(500);
+    });
+
+    it('returns correct state', () => {
+      const state = createState(
+        createNpmiState({
+          embeddingsSidebarWidth: 100,
+        })
+      );
+      expect(getEmbeddingsSidebarWidth(state)).toBe(100);
+    });
+  });
+
+  describe('getEmbeddingsSidebarExpanded', () => {
+    it('returns correct true state', () => {
+      const state = createState(createNpmiState());
+      expect(getEmbeddingsSidebarExpanded(state)).toBeTrue();
+    });
+
+    it('returns correct state', () => {
+      const state = createState(
+        createNpmiState({
+          embeddingsSidebarExpanded: false,
+        })
+      );
+      expect(getEmbeddingsSidebarExpanded(state)).toBeFalse();
     });
   });
 });

@@ -893,6 +893,29 @@ describe('npmi_reducers', () => {
   });
 
   describe('UI Preferences', () => {
+    it('changes the active view from default to embeddings', () => {
+      const state = createNpmiState();
+      const nextState = reducers(
+        state,
+        actions.npmiToggleEmbeddingsView({metric: 'test'})
+      );
+      expect(nextState.viewActive).toBe('embeddings');
+      expect(nextState.embeddingsMetric).toBe('test');
+    });
+
+    it('changes the active view from embeddings to default ', () => {
+      const state = createNpmiState({
+        viewActive: 'embeddings',
+        embeddingsMetric: 'test',
+      });
+      const nextState = reducers(
+        state,
+        actions.npmiToggleEmbeddingsView({metric: 'test'})
+      );
+      expect(nextState.viewActive).toBe('default');
+      expect(nextState.embeddingsMetric).toBe('');
+    });
+
     it('hides the parallel coordinates view', () => {
       const state = createNpmiState();
       const nextState = reducers(
@@ -927,18 +950,6 @@ describe('npmi_reducers', () => {
         actions.npmiToggleAnnotationsExpanded()
       );
       expect(nextState.annotationsExpanded).toBeTrue();
-    });
-
-    it('hides the sidebar', () => {
-      const state = createNpmiState();
-      const nextState = reducers(state, actions.npmiToggleSidebarExpanded());
-      expect(nextState.sidebarExpanded).toBeFalse();
-    });
-
-    it('shows the hidden sidebar', () => {
-      const state = createNpmiState({sidebarExpanded: false});
-      const nextState = reducers(state, actions.npmiToggleSidebarExpanded());
-      expect(nextState.sidebarExpanded).toBeTrue();
     });
 
     it('hides the count values', () => {
@@ -978,6 +989,45 @@ describe('npmi_reducers', () => {
         actions.npmiChangeSidebarWidth({sidebarWidth: 500})
       );
       expect(nextState.sidebarWidth).toBe(500);
+    });
+
+    it('hides the sidebar', () => {
+      const state = createNpmiState();
+      const nextState = reducers(state, actions.npmiToggleSidebarExpanded());
+      expect(nextState.sidebarExpanded).toBeFalse();
+    });
+
+    it('shows the hidden sidebar', () => {
+      const state = createNpmiState({sidebarExpanded: false});
+      const nextState = reducers(state, actions.npmiToggleSidebarExpanded());
+      expect(nextState.sidebarExpanded).toBeTrue();
+    });
+
+    it('changes the embeddings sidebar width', () => {
+      const state = createNpmiState();
+      const nextState = reducers(
+        state,
+        actions.npmiChangeEmbeddingsSidebarWidth({sidebarWidth: 300})
+      );
+      expect(nextState.embeddingsSidebarWidth).toBe(300);
+    });
+
+    it('hides the embeddings sidebar', () => {
+      const state = createNpmiState();
+      const nextState = reducers(
+        state,
+        actions.npmiToggleEmbeddingsSidebarExpanded()
+      );
+      expect(nextState.embeddingsSidebarExpanded).toBeFalse();
+    });
+
+    it('shows the hidden embeddings sidebar', () => {
+      const state = createNpmiState({embeddingsSidebarExpanded: false});
+      const nextState = reducers(
+        state,
+        actions.npmiToggleEmbeddingsSidebarExpanded()
+      );
+      expect(nextState.embeddingsSidebarExpanded).toBeTrue();
     });
   });
 });

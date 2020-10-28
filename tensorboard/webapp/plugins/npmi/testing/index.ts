@@ -42,10 +42,14 @@ export function createNpmiState(override?: Partial<NpmiState>): NpmiState {
     },
     pcExpanded: true,
     annotationsExpanded: true,
-    sidebarExpanded: true,
     showCounts: true,
     showHiddenAnnotations: false,
+    viewActive: 'default',
+    sidebarExpanded: true,
     sidebarWidth: 300,
+    embeddingsMetric: '',
+    embeddingsSidebarExpanded: true,
+    embeddingsSidebarWidth: 500,
     ...override,
   };
 }

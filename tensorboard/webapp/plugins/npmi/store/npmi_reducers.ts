@@ -51,10 +51,14 @@ const initialState: NpmiState = {
   },
   pcExpanded: true,
   annotationsExpanded: true,
-  sidebarExpanded: true,
   showCounts: true,
   showHiddenAnnotations: false,
+  viewActive: 'default',
   sidebarWidth: 300,
+  sidebarExpanded: true,
+  embeddingsMetric: '',
+  embeddingsSidebarWidth: 500,
+  embeddingsSidebarExpanded: true,
 };
 
 const reducer = createReducer(
@@ -345,16 +349,6 @@ const reducer = createReducer(
     }
   ),
   on(
-    actions.npmiToggleSidebarExpanded,
-    (state: NpmiState): NpmiState => {
-      return {
-        ...state,
-        sidebarExpanded: !state.sidebarExpanded,
-      };
-    }
-  ),
-
-  on(
     actions.npmiToggleShowCounts,
     (state: NpmiState): NpmiState => {
       return {
@@ -373,11 +367,54 @@ const reducer = createReducer(
     }
   ),
   on(
+    actions.npmiToggleEmbeddingsView,
+    (state: NpmiState, {metric}): NpmiState => {
+      let viewActive = 'embeddings';
+      let newMetric = metric;
+      if (metric === state.embeddingsMetric) {
+        viewActive = 'default';
+        newMetric = '';
+      }
+      return {
+        ...state,
+        viewActive: viewActive,
+        embeddingsMetric: newMetric,
+      };
+    }
+  ),
+  on(
     actions.npmiChangeSidebarWidth,
     (state: NpmiState, {sidebarWidth}): NpmiState => {
       return {
         ...state,
         sidebarWidth,
+      };
+    }
+  ),
+  on(
+    actions.npmiToggleSidebarExpanded,
+    (state: NpmiState): NpmiState => {
+      return {
+        ...state,
+        sidebarExpanded: !state.sidebarExpanded,
+      };
+    }
+  ),
+  on(
+    actions.npmiChangeEmbeddingsSidebarWidth,
+    (state: NpmiState, {sidebarWidth}): NpmiState => {
+      return {
+        ...state,
+        embeddingsSidebarWidth: sidebarWidth,
+      };
+    }
+  ),
+  on(
+    actions.npmiToggleEmbeddingsSidebarExpanded,
+    (state: NpmiState): NpmiState => {
+      return {
+        ...state,
+        embeddingsSidebarExpanded: !state.embeddingsSidebarExpanded,
       };
     }
   )

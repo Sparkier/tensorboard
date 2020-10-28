@@ -38,6 +38,7 @@ export class MetricArithmeticElementComponent
   @Input() metric!: string;
   @Input() filterValues!: {min: number; max: number};
   @Output() onRemove = new EventEmitter<string>();
+  @Output() onSelect = new EventEmitter<string>();
   @Output() onFilterChange = new EventEmitter<{min: number; max: number}>();
   focusMin = false;
   focusMax = false;

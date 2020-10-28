@@ -1,3 +1,4 @@
+import {select} from '@ngrx/store';
 /* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -133,13 +134,6 @@ export const getAnnotationsExpanded = createSelector(
   }
 );
 
-export const getSidebarExpanded = createSelector(
-  selectNpmiState,
-  (state: NpmiState): boolean => {
-    return state.sidebarExpanded;
-  }
-);
-
 export const getShowCounts = createSelector(
   selectNpmiState,
   (state: NpmiState): boolean => {
@@ -154,9 +148,44 @@ export const getShowHiddenAnnotations = createSelector(
   }
 );
 
+export const getViewActive = createSelector(
+  selectNpmiState,
+  (state: NpmiState): string => {
+    return state.viewActive;
+  }
+);
+
 export const getSidebarWidth = createSelector(
   selectNpmiState,
   (state: NpmiState): number => {
     return state.sidebarWidth;
+  }
+);
+
+export const getSidebarExpanded = createSelector(
+  selectNpmiState,
+  (state: NpmiState): boolean => {
+    return state.sidebarExpanded;
+  }
+);
+
+export const getEmbeddingsMetric = createSelector(
+  selectNpmiState,
+  (state: NpmiState): string => {
+    return state.embeddingsMetric;
+  }
+);
+
+export const getEmbeddingsSidebarWidth = createSelector(
+  selectNpmiState,
+  (state: NpmiState): number => {
+    return state.embeddingsSidebarWidth;
+  }
+);
+
+export const getEmbeddingsSidebarExpanded = createSelector(
+  selectNpmiState,
+  (state: NpmiState): boolean => {
+    return state.embeddingsSidebarExpanded;
   }
 );

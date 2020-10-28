@@ -14,7 +14,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-<mat-chip class="filter-chip" (removed)="onRemove.emit(metric)">
+<mat-chip
+  class="filter-chip"
+  (removed)="onRemove.emit(metric)"
+  (click)="onSelect.emit(metric)"
+>
   {{metric}}
   <div
     class="metric-arithmetic-element-range"

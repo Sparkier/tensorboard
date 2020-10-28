@@ -23,4 +23,5 @@ import {RunId} from '../../core/types';
 })
 export class NpmiComponent {
   @Input() runs!: Map<RunId, boolean>;
+  @Input() activeView!: string;
 }

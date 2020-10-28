@@ -30,6 +30,7 @@ import * as npmiActions from '../../../../actions';
       [metric]="metric"
       [filterValues]="filterValues$ | async"
       (onRemove)="remove($event)"
+      (onSelect)="select($event)"
       (onFilterChange)="filterChange($event)"
     ></metric-arithmetic-element-component>
   `,
@@ -58,6 +59,11 @@ export class MetricArithmeticElementContainer {
 
   remove(metric: string) {
     this.store.dispatch(npmiActions.npmiRemoveMetricFilter({metric: metric}));
+  }
+
+  select(metric: string) {
+    console.log('select');
+    this.store.dispatch(npmiActions.npmiToggleEmbeddingsView({metric: metric}));
   }
 
   filterChange(newValues: {min: number; max: number}) {

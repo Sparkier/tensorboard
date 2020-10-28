@@ -18,15 +18,22 @@ import {select, Store} from '@ngrx/store';
 import {npmiLoaded} from './actions';
 import {State} from '../../app_state';
 import {getRunSelection} from '../../core/store/core_selectors';
+import {getViewActive} from './store/npmi_selectors';
 
 /** @typehack */ import * as _typeHackRxjs from 'rxjs';
 
 @Component({
   selector: 'npmi',
-  template: ` <npmi-component [runs]="runs$ | async"></npmi-component> `,
+  template: `
+    <npmi-component
+      [runs]="runs$ | async"
+      [activeView]="activeView$ | async"
+    ></npmi-component>
+  `,
 })
 export class NpmiContainer implements OnInit {
   readonly runs$ = this.store.pipe(select(getRunSelection));
+  readonly activeView$ = this.store.pipe(select(getViewActive));
 
   constructor(private readonly store: Store<State>) {}
 
