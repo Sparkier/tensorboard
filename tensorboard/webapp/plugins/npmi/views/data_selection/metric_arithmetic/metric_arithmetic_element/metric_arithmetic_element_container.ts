@@ -18,7 +18,11 @@ import {select, Store} from '@ngrx/store';
 import {map} from 'rxjs/operators';
 
 import {State} from '../../../../store/npmi_types';
-import {getMetricFilters} from '../../../../store';
+import {
+  getEmbeddingData,
+  getEmbeddingsMetric,
+  getMetricFilters,
+} from '../../../../store';
 import * as npmiActions from '../../../../actions';
 
 /** @typehack */ import * as _typeHackRxjs from 'rxjs';
@@ -29,6 +33,8 @@ import * as npmiActions from '../../../../actions';
     <metric-arithmetic-element-component
       [metric]="metric"
       [filterValues]="filterValues$ | async"
+      [embeddingsPresent]="embeddingsPresent$ | async"
+      [embeddingsMetric]="embeddingsMetric$ | async"
       (onRemove)="remove($event)"
       (onSelect)="select($event)"
       (onFilterChange)="filterChange($event)"
@@ -54,6 +60,12 @@ export class MetricArithmeticElementContainer {
       return {min: min, max: max};
     })
   );
+  readonly embeddingsPresent$ = this.store.pipe(select(getEmbeddingData)).pipe(
+    map((embeddingData) => {
+      return Object.keys(embeddingData).length > 0;
+    })
+  );
+  readonly embeddingsMetric$ = this.store.pipe(select(getEmbeddingsMetric));
 
   constructor(private readonly store: Store<State>) {}
 

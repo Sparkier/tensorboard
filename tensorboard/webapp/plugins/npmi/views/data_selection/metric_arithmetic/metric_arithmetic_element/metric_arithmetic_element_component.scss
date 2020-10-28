@@ -48,3 +48,11 @@ limitations under the License.
 .value-invalid {
   color: mat-color($tb-warn);
 }
+
+.chip-clickable {
+  cursor: pointer;
+}
+
+.embedding-selected {
+  background-color: mat-color($tb-primary, 500);
+}

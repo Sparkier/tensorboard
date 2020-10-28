@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 import {Component, ChangeDetectionStrategy} from '@angular/core';
 import {select, Store} from '@ngrx/store';
+
 import {State} from '../../../store/npmi_types';
 import {getMetricArithmetic} from '../../../store';
 
@@ -30,6 +31,5 @@ import {getMetricArithmetic} from '../../../store';
 })
 export class MetricArithmeticContainer {
   readonly metricArithmetic$ = this.store.pipe(select(getMetricArithmetic));
-
   constructor(private readonly store: Store<State>) {}
 }

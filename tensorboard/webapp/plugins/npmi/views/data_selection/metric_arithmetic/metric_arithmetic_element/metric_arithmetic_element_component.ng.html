@@ -18,11 +18,13 @@ limitations under the License.
   class="filter-chip"
   (removed)="onRemove.emit(metric)"
   (click)="onSelect.emit(metric)"
+  [ngClass]="{'chip-clickable': embeddingsPresent}"
 >
   {{metric}}
   <div
     class="metric-arithmetic-element-range"
     (keydown)="$event.stopPropagation()"
+    [ngClass]="{'embedding-selected': embeddingsMetric===metric}"
   >
     [
     <input
