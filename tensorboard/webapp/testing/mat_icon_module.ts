@@ -46,6 +46,7 @@ const KNOWN_SVG_ICON = new Set([
   'settings_overscan_24px',
   'warning_24px',
   'visibility_off_24px',
+  'group_work_24px',
 ]);
 
 /**

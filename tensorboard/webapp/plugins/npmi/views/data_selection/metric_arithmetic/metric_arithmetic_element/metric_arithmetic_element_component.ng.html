@@ -14,17 +14,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-<mat-chip
-  class="filter-chip"
-  (removed)="onRemove.emit(metric)"
-  (click)="onSelect.emit(metric)"
-  [ngClass]="{'chip-clickable': embeddingsPresent}"
->
+<mat-chip class="filter-chip" (removed)="onRemove.emit(metric)">
+  <mat-icon
+    class="embeddings-button"
+    svgIcon="group_work_24px"
+    (click)="onSelect.emit(metric)"
+    [ngClass]="{'embedding-selected': embeddingsMetric===metric, 'embedding-unselected': embeddingsMetric!==metric}"
+  ></mat-icon>
   {{metric}}
   <div
     class="metric-arithmetic-element-range"
     (keydown)="$event.stopPropagation()"
-    [ngClass]="{'embedding-selected': embeddingsMetric===metric}"
   >
     [
     <input

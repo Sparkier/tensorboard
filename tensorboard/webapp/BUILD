@@ -285,6 +285,7 @@ tf_svg_bundle(
         "@com_google_material_design_icon//:settings_24px.svg",
         "@com_google_material_design_icon//:search_24px.svg",
         "@com_google_material_design_icon//:visibility_off_24px.svg",
+        "@com_google_material_design_icon//:group_work_24px.svg",
     ],
     out = "icon_bundle.svg",
 )

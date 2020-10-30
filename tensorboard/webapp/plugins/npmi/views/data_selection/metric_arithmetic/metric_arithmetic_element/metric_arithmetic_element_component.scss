@@ -49,10 +49,18 @@ limitations under the License.
   color: mat-color($tb-warn);
 }
 
-.chip-clickable {
-  cursor: pointer;
+.embedding-selected {
+  color: mat-color($tb-primary);
+  opacity: 1;
 }
 
-.embedding-selected {
-  background-color: mat-color($tb-primary, 500);
+.embedding-unselected {
+  opacity: 0.4;
+}
+
+.embeddings-button {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  cursor: pointer;
 }
