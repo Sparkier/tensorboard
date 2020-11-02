@@ -25,6 +25,7 @@ ng_module(
         "npmi_types.ts",
     ],
     deps = [
+        "//tensorboard/plugins/projector/vz_projector",
         "//tensorboard/webapp/types",
         "@npm//@ngrx/store",
         "@npm//rxjs",

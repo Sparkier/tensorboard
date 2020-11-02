@@ -13,8 +13,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 import {DataLoadState, LoadState} from '../../../types/data';
+import {
+  DataSet,
+  DataPoint,
+} from '../../../../plugins/projector/vz_projector/data';
 
 export {DataLoadState, LoadState};
+export {DataSet, DataPoint};
 
 export const NPMI_FEATURE_KEY = 'npmi';
 
@@ -76,6 +81,7 @@ export interface NpmiState {
   annotationData: AnnotationDataListing;
   runToMetrics: MetricListing;
   embeddingData: EmbeddingListing;
+  embeddingDataSet?: DataSet;
 
   // based on user interaction
   selectedAnnotations: Annotation[];

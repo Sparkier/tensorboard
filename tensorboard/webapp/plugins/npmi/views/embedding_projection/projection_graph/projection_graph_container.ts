@@ -19,6 +19,7 @@ import {map} from 'rxjs/operators';
 
 import {State} from '../../../../../app_state';
 import {
+  getEmbeddingDataSet,
   getEmbeddingsMetric,
   getEmbeddingsSidebarWidth,
 } from '../../../store/npmi_selectors';
@@ -31,6 +32,7 @@ import {
     <projection-graph-component
       [metricName]="metricName$ | async"
       [width]="chartWidth$ | async"
+      [embeddingDataSet]="embeddingDataSet$ | async"
     ></projection-graph-component>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -44,6 +46,7 @@ export class ProjectionGraphContainer {
         return Math.max(150, width);
       })
     );
+  readonly embeddingDataSet$ = this.store.pipe(select(getEmbeddingDataSet));
 
   constructor(private readonly store: Store<State>) {}
 }

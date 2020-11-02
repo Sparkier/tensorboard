@@ -24,6 +24,8 @@ import {
 } from '@angular/core';
 
 import * as d3 from '../../../../../third_party/d3';
+import {DataSet} from '../../../store/npmi_types';
+import * as logging from '../../../../../../plugins/projector/vz_projector/logging';
 
 @Component({
   selector: 'projection-graph-component',
@@ -34,6 +36,7 @@ import * as d3 from '../../../../../third_party/d3';
 export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   @Input() metricName!: string;
   @Input() width!: number;
+  @Input() embeddingDataSet!: DataSet;
   @ViewChild('chart', {static: true, read: ElementRef})
   private readonly chartContainer!: ElementRef<HTMLDivElement>;
   private height: number = 0;
@@ -81,6 +84,8 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   private xScaleNum!: d3.ScaleLinear<number, number>;
 
   ngAfterViewInit(): void {
+    this.chartContainer.nativeElement.attachShadow({mode: 'open'});
+    logging.setDomContainer(this.chartContainer.nativeElement);
     this.svg = d3.select(this.chartContainer.nativeElement).select('svg');
     this.updateDimensions();
     this.mainContainer = this.svg
@@ -97,12 +102,17 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
     this.xScale = d3.scaleBand().padding(0.05);
     this.yScale = d3.scaleLinear().range([this.drawHeight, 0]);
     this.xScaleNum = d3.scaleLinear();
+    console.log(this.embeddingDataSet);
+    if (!this.embeddingDataSet.hasUmapRun) {
+      this.runUMAP();
+    }
     this.redraw();
   }
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.svg) {
       this.redraw();
+      console.log(this.embeddingDataSet);
     }
   }
 
@@ -122,6 +132,14 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
     this.chartHeight = this.height - this.margin.top - this.margin.bottom;
     this.drawHeight =
       this.chartHeight - this.drawMargin.top - this.drawMargin.bottom;
+  }
+
+  private runUMAP() {
+    let dataset = this.embeddingDataSet;
+    console.log('test');
+    dataset.projectUmap(2, 20, (iteration: number) => {
+      console.log(iteration);
+    });
   }
 
   updateAxes() {}

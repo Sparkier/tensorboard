@@ -23,6 +23,7 @@ import {
   ArithmeticElement,
   Operator,
   ArithmeticKind,
+  DataSet,
 } from './npmi_types';
 import * as metricType from '../util/metric_type';
 
@@ -89,7 +90,10 @@ const reducer = createReducer(
   ),
   on(
     actions.npmiPluginDataLoaded,
-    (state: NpmiState, {annotationData, metrics, embeddingData}): NpmiState => {
+    (
+      state: NpmiState,
+      {annotationData, metrics, embeddingData, embeddingDataSet}
+    ): NpmiState => {
       const runToMetrics: MetricListing = {};
       for (const key in metrics) {
         // Init Metrics Data
@@ -105,6 +109,7 @@ const reducer = createReducer(
         runToMetrics: runToMetrics,
         annotationData: annotationData,
         embeddingData: embeddingData,
+        embeddingDataSet: embeddingDataSet,
         pluginDataLoaded: {
           state: DataLoadState.LOADED,
           lastLoadedTimeInMs: Date.now(),

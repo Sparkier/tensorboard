@@ -22,6 +22,7 @@ ng_module(
         ":projection_graph_component_styles",
     ],
     deps = [
+        "//tensorboard/plugins/projector/vz_projector",
         "//tensorboard/webapp:app_state",
         "//tensorboard/webapp/angular:expect_angular_material_button",
         "//tensorboard/webapp/angular:expect_angular_material_icon",

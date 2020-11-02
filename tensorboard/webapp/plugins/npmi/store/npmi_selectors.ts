@@ -25,6 +25,7 @@ import {
   MetricFilterListing,
   AnnotationSort,
   EmbeddingListing,
+  DataSet,
 } from './npmi_types';
 
 // HACK: These imports are for type inference.
@@ -61,6 +62,13 @@ export const getEmbeddingData = createSelector(
   selectNpmiState,
   (state: NpmiState): EmbeddingListing => {
     return state.embeddingData;
+  }
+);
+
+export const getEmbeddingDataSet = createSelector(
+  selectNpmiState,
+  (state: NpmiState): DataSet | undefined => {
+    return state.embeddingDataSet;
   }
 );
 

@@ -74,7 +74,6 @@ export class MetricArithmeticElementContainer {
   }
 
   select(metric: string) {
-    console.log('select');
     this.store.dispatch(npmiActions.npmiToggleEmbeddingsView({metric: metric}));
   }
 
