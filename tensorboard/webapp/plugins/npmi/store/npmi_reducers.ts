@@ -266,6 +266,12 @@ const reducer = createReducer(
         startSlice = arithmeticIndex - 1;
         endSlice = arithmeticIndex + 1;
       }
+      let viewActive = state.viewActive;
+      let newMetric = state.embeddingsMetric;
+      if (metric === state.embeddingsMetric) {
+        viewActive = 'default';
+        newMetric = '';
+      }
       return {
         ...state,
         metricArithmetic: [
@@ -273,6 +279,8 @@ const reducer = createReducer(
           ...state.metricArithmetic.slice(endSlice),
         ],
         metricFilters: map,
+        viewActive: viewActive,
+        embeddingsMetric: newMetric,
       };
     }
   ),

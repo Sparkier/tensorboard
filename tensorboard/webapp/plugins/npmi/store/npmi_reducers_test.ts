@@ -737,6 +737,71 @@ describe('npmi_reducers', () => {
           {kind: ArithmeticKind.METRIC, metric: 'nPMI@third'},
         ]);
       });
+
+      it('removes the filter and changes to default view if metric is same as embedding view metric', () => {
+        const state = createNpmiState({
+          metricFilters: {
+            'nPMI@test': {
+              max: 0.3,
+              min: -1.0,
+              includeNaN: true,
+            },
+          },
+          metricArithmetic: [
+            {kind: ArithmeticKind.METRIC, metric: 'nPMI@test'},
+          ],
+          viewActive: 'embeddings',
+          embeddingsMetric: 'nPMI@test',
+        });
+        const nextState = reducers(
+          state,
+          actions.npmiRemoveMetricFilter({metric: 'nPMI@test'})
+        );
+        expect(nextState.metricFilters).toEqual({});
+        expect(nextState.metricArithmetic).toEqual([]);
+        expect(nextState.viewActive).toEqual('default');
+        expect(nextState.embeddingsMetric).toEqual('');
+      });
+
+      it('removes the filter and does not changes to default view if metric is not the same as embedding view metric', () => {
+        const state = createNpmiState({
+          metricFilters: {
+            'nPMI@test': {
+              max: 0.3,
+              min: -1.0,
+              includeNaN: true,
+            },
+            'nPMI@other': {
+              max: 0.3,
+              min: -1.0,
+              includeNaN: true,
+            },
+          },
+          metricArithmetic: [
+            {kind: ArithmeticKind.METRIC, metric: 'nPMI@test'},
+            {kind: ArithmeticKind.OPERATOR, operator: Operator.AND},
+            {kind: ArithmeticKind.METRIC, metric: 'nPMI@other'},
+          ],
+          viewActive: 'embeddings',
+          embeddingsMetric: 'nPMI@other',
+        });
+        const nextState = reducers(
+          state,
+          actions.npmiRemoveMetricFilter({metric: 'nPMI@test'})
+        );
+        expect(nextState.metricFilters).toEqual({
+          'nPMI@other': {
+            max: 0.3,
+            min: -1.0,
+            includeNaN: true,
+          },
+        });
+        expect(nextState.metricArithmetic).toEqual([
+          {kind: ArithmeticKind.METRIC, metric: 'nPMI@other'},
+        ]);
+        expect(nextState.viewActive).toEqual('embeddings');
+        expect(nextState.embeddingsMetric).toEqual('nPMI@other');
+      });
     });
 
     describe('Change a Filter', () => {
