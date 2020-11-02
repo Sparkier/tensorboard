@@ -16,32 +16,22 @@ import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 
-import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
 
-import {EmbeddingsComponent} from './embeddings_component';
-import {EmbeddingsContainer} from './embeddings_container';
-import {RunsModule} from '../../../../runs_legacy/runs_module';
-import {DataSelectionModule} from './../data_selection/data_selection_module';
-import {AnnotationsListModule} from '../annotations_list/annotations_list_module';
-import {SelectedAnnotationsModule} from './../selected_annotations/selected_annotations_module';
-import {EmbeddingProjectionModule} from './../embedding_projection/embedding_projection_module';
+import {EmbeddingProjectionComponent} from './embedding_projection_component';
+import {EmbeddingProjectionContainer} from './embedding_projection_container';
+import {ProjectionGraphModule} from './projection_graph/projection_graph_module';
 
 @NgModule({
-  declarations: [EmbeddingsComponent, EmbeddingsContainer],
+  declarations: [EmbeddingProjectionComponent, EmbeddingProjectionContainer],
   imports: [
     CommonModule,
     FormsModule,
-    MatCheckboxModule,
     MatIconModule,
-    RunsModule,
-    DataSelectionModule,
     MatButtonModule,
-    AnnotationsListModule,
-    SelectedAnnotationsModule,
-    EmbeddingProjectionModule,
+    ProjectionGraphModule,
   ],
-  exports: [EmbeddingsContainer],
+  exports: [EmbeddingProjectionContainer],
 })
-export class EmbeddingsModule {}
+export class EmbeddingProjectionModule {}
