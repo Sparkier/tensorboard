@@ -25,8 +25,8 @@ import {
   MetricFilterListing,
   AnnotationSort,
   EmbeddingListing,
-  DataSet,
 } from './npmi_types';
+import {DataSet} from '../umap/data';
 
 // HACK: These imports are for type inference.
 // https://github.com/bazelbuild/rules_nodejs/issues/1013

@@ -17,8 +17,8 @@ import {
   AnnotationDataListing,
   MetricListing,
   EmbeddingListing,
-  DataSet,
 } from '../store/npmi_types';
+import {DataSet} from '../umap/data';
 
 // HACK: Below import is for type inference.
 // https://github.com/bazelbuild/rules_nodejs/issues/1013

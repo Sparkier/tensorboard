@@ -27,9 +27,8 @@ import {
   AnnotationDataListing,
   ValueData,
   EmbeddingListing,
-  DataPoint,
-  DataSet,
 } from './../store/npmi_types';
+import {DataPoint, DataSet} from '../umap/data';
 
 /** @typehack */ import * as _typeHackRxjs from 'rxjs';
 

@@ -24,8 +24,7 @@ import {
 } from '@angular/core';
 
 import * as d3 from '../../../../../third_party/d3';
-import {DataSet} from '../../../store/npmi_types';
-import * as logging from '../../../../../../plugins/projector/vz_projector/logging';
+import {DataSet} from '../../../umap/data';
 
 @Component({
   selector: 'projection-graph-component',
@@ -84,8 +83,6 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   private xScaleNum!: d3.ScaleLinear<number, number>;
 
   ngAfterViewInit(): void {
-    this.chartContainer.nativeElement.attachShadow({mode: 'open'});
-    logging.setDomContainer(this.chartContainer.nativeElement);
     this.svg = d3.select(this.chartContainer.nativeElement).select('svg');
     this.updateDimensions();
     this.mainContainer = this.svg

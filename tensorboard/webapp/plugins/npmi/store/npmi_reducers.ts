@@ -23,7 +23,6 @@ import {
   ArithmeticElement,
   Operator,
   ArithmeticKind,
-  DataSet,
 } from './npmi_types';
 import * as metricType from '../util/metric_type';
 
