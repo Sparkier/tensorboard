@@ -93,10 +93,7 @@ function checkValuesPassMetricArithmetic(
     return valueDataElements.some((valueDataElement) => {
       if (valueDataElement.metric === stripMetricString(element.metric)) {
         if (valueDataElement.nPMIValue === null) {
-          if (metricFilter.includeNaN) {
-            return true;
-          }
-          return false;
+          return metricFilter.includeNaN;
         } else {
           return (
             valueDataElement.nPMIValue! <= metricFilter.max &&
