@@ -197,3 +197,10 @@ export const getEmbeddingsSidebarExpanded = createSelector(
     return state.embeddingsSidebarExpanded;
   }
 );
+
+export const getEmbeddingStatusMessage = createSelector(
+  selectNpmiState,
+  (state: NpmiState): string => {
+    return state.embeddingStatusMessage;
+  }
+);

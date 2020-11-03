@@ -12,23 +12,13 @@ const TASK_DELAY_MS = 200;
  * @return The value returned by the task.
  */
 export function runAsyncTask<T>(
-  message: string,
   task: () => T,
-  msgId: string = null,
   taskDelay = TASK_DELAY_MS
 ): Promise<T> {
-  let autoClear = msgId == null;
-  console.log(msgId);
-  console.log(message);
   return new Promise<T>((resolve, reject) => {
     setTimeout(() => {
       try {
         let result = task();
-        // Clearing the old message.
-        if (autoClear) {
-          console.log(msgId);
-          console.log(message);
-        }
         resolve(result);
       } catch (ex) {
         reject(ex);

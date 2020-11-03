@@ -20,5 +20,9 @@ limitations under the License.
   </div>
   <div #chart class="chart">
     <svg class="draw-area"></svg>
+    <div *ngIf="embeddingStatusMessage !== ''" class="status-panel">
+      <mat-spinner diameter="30"></mat-spinner>
+      {{embeddingStatusMessage}}
+    </div>
   </div>
 </div>

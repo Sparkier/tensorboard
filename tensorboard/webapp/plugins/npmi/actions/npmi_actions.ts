@@ -142,3 +142,13 @@ export const npmiChangeEmbeddingsSidebarWidth = createAction(
 export const npmiToggleEmbeddingsSidebarExpanded = createAction(
   '[NPMI] Toggle Embeddings Sidebar Expanded'
 );
+
+export const changeEmbeddingStatusMessage = createAction(
+  '[NPMI] Change Embedding Status Message',
+  props<{message: string}>()
+);
+
+export const changeEmbeddingDataSet = createAction(
+  '[NPMI] Change Embedding DataSet',
+  props<{dataSet: DataSet}>()
+);

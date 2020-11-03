@@ -9,7 +9,6 @@ import {
 import {runAsyncTask} from './async';
 
 export {DataPoint};
-const UMAP_MSG_ID = 'umap-optimization';
 const IS_FIREFOX = navigator.userAgent.toLowerCase().indexOf('firefox') >= 0;
 
 /**
@@ -41,7 +40,8 @@ export class DataSet {
   async projectUmap(
     nComponents: number,
     nNeighbors: number,
-    stepCallback: (iter: number) => void
+    messageCallback: (message: string) => void,
+    finishCallback: () => void
   ) {
     this.hasUmapRun = true;
     this.umap = new UMAP({nComponents, nNeighbors});
@@ -51,22 +51,18 @@ export class DataSet {
     const sampledData = sampledIndices.map((i) => this.points[i]);
     // TODO: Switch to a Float32-based UMAP internal
     const X = sampledData.map((x) => Array.from(x.vector));
-    const nearest = await this.computeKnn(sampledData, nNeighbors);
-    const nEpochs = await runAsyncTask(
-      'Initializing UMAP...',
-      () => {
-        const knnIndices = nearest.map((row) =>
-          row.map((entry) => entry.index)
-        );
-        const knnDistances = nearest.map((row) =>
-          row.map((entry) => entry.dist)
-        );
-        // Initialize UMAP and return the number of epochs.
-        this.umap.setPrecomputedKNN(knnIndices, knnDistances);
-        return this.umap.initializeFit(X);
-      },
-      UMAP_MSG_ID
+    const nearest = await this.computeKnn(
+      sampledData,
+      nNeighbors,
+      messageCallback
     );
+    const nEpochs = await runAsyncTask(() => {
+      const knnIndices = nearest.map((row) => row.map((entry) => entry.index));
+      const knnDistances = nearest.map((row) => row.map((entry) => entry.dist));
+      // Initialize UMAP and return the number of epochs.
+      this.umap.setPrecomputedKNN(knnIndices, knnDistances);
+      return this.umap.initializeFit(X);
+    });
     // Now, iterate through all epoch batches of the UMAP optimization, updating
     // the modal window with the progress rather than animating each step since
     // the UMAP animation is not nearly as informative as t-SNE.
@@ -81,32 +77,26 @@ export class DataSet {
         const progressMsg = `Optimizing UMAP (epoch ${currentEpoch} of ${nEpochs})`;
         // Wrap the logic in a util.runAsyncTask in order to correctly update
         // the modal with the progress of the optimization.
-        runAsyncTask(
-          progressMsg,
-          () => {
-            if (currentEpoch < nEpochs) {
-              requestAnimationFrame(step);
-            } else {
-              const result = this.umap.getEmbedding();
-              sampledIndices.forEach((index, i) => {
-                const dataPoint = this.points[index];
-                dataPoint.projections['umap-0'] = result[i][0];
-                dataPoint.projections['umap-1'] = result[i][1];
-                if (nComponents === 3) {
-                  dataPoint.projections['umap-2'] = result[i][2];
-                }
-              });
-              this.projections['umap'] = true;
-              console.log(UMAP_MSG_ID);
-              this.hasUmapRun = true;
-              stepCallback(currentEpoch);
-              resolve();
-            }
-          },
-          UMAP_MSG_ID,
-          0
-        ).catch((error) => {
-          console.log(UMAP_MSG_ID);
+        runAsyncTask(() => {
+          if (currentEpoch < nEpochs) {
+            messageCallback(progressMsg);
+            requestAnimationFrame(step);
+          } else {
+            const result = this.umap.getEmbedding();
+            sampledIndices.forEach((index, i) => {
+              const dataPoint = this.points[index];
+              dataPoint.projections['umap-0'] = result[i][0];
+              dataPoint.projections['umap-1'] = result[i][1];
+              if (nComponents === 3) {
+                dataPoint.projections['umap-2'] = result[i][2];
+              }
+            });
+            this.projections['umap'] = true;
+            this.hasUmapRun = true;
+            finishCallback();
+            resolve();
+          }
+        }, 0).catch((error) => {
           reject(error);
         });
       };
@@ -116,7 +106,8 @@ export class DataSet {
   /** Computes KNN to provide to the UMAP and t-SNE algorithms. */
   private async computeKnn(
     data: DataPoint[],
-    nNeighbors: number
+    nNeighbors: number,
+    messageCallback: (message: string) => void
   ): Promise<knn.NearestEntry[][]> {
     // Handle the case where we've previously found the nearest neighbors.
     const previouslyComputedNNeighbors =
@@ -128,12 +119,18 @@ export class DataSet {
     } else {
       const knnGpuEnabled = (await util.hasWebGLSupport()) && !IS_FIREFOX;
       const result = await (knnGpuEnabled
-        ? knn.findKNNGPUCosine(data, nNeighbors, (d) => d.vector)
+        ? knn.findKNNGPUCosine(
+            data,
+            nNeighbors,
+            (d) => d.vector,
+            messageCallback
+          )
         : knn.findKNN(
             data,
             nNeighbors,
             (d) => d.vector,
-            (a, b) => vector.cosDistNorm(a, b)
+            (a, b) => vector.cosDistNorm(a, b),
+            messageCallback
           ));
       this.nearest = result;
       return Promise.resolve(result);

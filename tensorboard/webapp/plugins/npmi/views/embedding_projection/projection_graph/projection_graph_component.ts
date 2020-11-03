@@ -1,3 +1,4 @@
+import {changeEmbeddingStatusMessage} from './../../../actions/npmi_actions';
 /* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +17,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   Input,
+  Output,
   AfterViewInit,
   OnChanges,
   SimpleChanges,
+  EventEmitter,
   ViewChild,
   ElementRef,
 } from '@angular/core';
@@ -36,6 +39,9 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   @Input() metricName!: string;
   @Input() width!: number;
   @Input() embeddingDataSet!: DataSet;
+  @Input() embeddingStatusMessage!: string;
+  @Output() onChangeStatusMessage = new EventEmitter<string>();
+  @Output() onChangeEmbeddingDataSet = new EventEmitter<DataSet>();
   @ViewChild('chart', {static: true, read: ElementRef})
   private readonly chartContainer!: ElementRef<HTMLDivElement>;
   private height: number = 0;
@@ -78,9 +84,15 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
     undefined
   >;
   // Scales and axis
-  private xScale!: d3.ScalePoint<string>;
+  private xScale!: d3.ScaleLinear<number, number>;
   private yScale!: d3.ScaleLinear<number, number>;
   private xScaleNum!: d3.ScaleLinear<number, number>;
+  private graphBox!: d3.Selection<
+    SVGRectElement,
+    unknown,
+    HTMLElement | null,
+    undefined
+  >;
 
   ngAfterViewInit(): void {
     this.svg = d3.select(this.chartContainer.nativeElement).select('svg');
@@ -96,20 +108,22 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
       );
     this.dotsGroup = this.drawContainer.append('g').attr('class', 'dotsGroup');
     this.miscGroup = this.drawContainer.append('g');
-    this.xScale = d3.scaleBand().padding(0.05);
-    this.yScale = d3.scaleLinear().range([this.drawHeight, 0]);
+    this.xScale = d3.scaleLinear();
+    this.yScale = d3.scaleLinear();
     this.xScaleNum = d3.scaleLinear();
-    console.log(this.embeddingDataSet);
-    if (!this.embeddingDataSet.hasUmapRun) {
+    if (
+      !this.embeddingDataSet.hasUmapRun &&
+      this.embeddingStatusMessage === ''
+    ) {
       this.runUMAP();
     }
+    this.drawBox();
     this.redraw();
   }
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.svg) {
       this.redraw();
-      console.log(this.embeddingDataSet);
     }
   }
 
@@ -133,14 +147,49 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
 
   private runUMAP() {
     let dataset = this.embeddingDataSet;
-    console.log('test');
-    dataset.projectUmap(2, 20, (iteration: number) => {
-      console.log(iteration);
-    });
+    dataset.projectUmap(
+      2,
+      20,
+      (message: string) => {
+        this.onChangeStatusMessage.emit(message);
+      },
+      () => {
+        this.onChangeEmbeddingDataSet.emit(dataset);
+      }
+    );
   }
 
-  updateAxes() {}
+  private updateAxes() {
+    this.xScale.range([0, this.drawWidth]).domain([0, 1]);
+    this.yScale.range([0, this.drawHeight]).domain([0, 1]);
+  }
 
   // Drawing UI
-  draw() {}
+  draw() {
+    this.refreshBox();
+    if (
+      this.embeddingStatusMessage === '' &&
+      this.embeddingDataSet.hasUmapRun === true
+    ) {
+      console.log('draw plot');
+      console.log(this.embeddingDataSet);
+    }
+  }
+
+  private drawBox() {
+    this.graphBox = this.mainContainer
+      .append('rect')
+      .style('stroke', 'black')
+      .style('fill', 'none')
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('width', this.chartWidth)
+      .attr('height', this.chartHeight);
+  }
+
+  private refreshBox() {
+    this.graphBox
+      .attr('width', this.chartWidth)
+      .attr('height', this.chartHeight);
+  }
 }

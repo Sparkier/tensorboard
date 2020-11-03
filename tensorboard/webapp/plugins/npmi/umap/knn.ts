@@ -16,7 +16,6 @@ import * as tf from '../../../../webapp/third_party/tfjs';
 
 import {KMin} from '../../../../plugins/projector/vz_projector/heap';
 import * as vector from '../../../../plugins/projector/vz_projector/vector';
-import * as util from '../../../../plugins/projector/vz_projector/util';
 import {runAsyncTask} from './async';
 
 export type NearestEntry = {
@@ -32,8 +31,6 @@ export type NearestEntry = {
  * allocation limit, we can freeze the graphics of the whole OS.
  */
 const OPTIMAL_GPU_BLOCK_SIZE = 256;
-/** Id of message box used for knn gpu progress bar. */
-const KNN_GPU_MSG_ID = 'knn-gpu';
 /**
  * Returns the K nearest neighbors for each vector where the distance
  * computation is done on the GPU (WebGL) using cosine distance.
@@ -46,7 +43,8 @@ const KNN_GPU_MSG_ID = 'knn-gpu';
 export function findKNNGPUCosine<T>(
   dataPoints: T[],
   k: number,
-  accessor: (dataPoint: T) => Float32Array
+  accessor: (dataPoint: T) => Float32Array,
+  messageCallback: (message: string) => void
 ): Promise<NearestEntry[][]> {
   let N = dataPoints.length;
   let dim = accessor(dataPoints[0]).length;
@@ -72,59 +70,56 @@ export function findKNNGPUCosine<T>(
   function step(resolve: (result: NearestEntry[][]) => void) {
     let progressMsg =
       'Finding nearest neighbors: ' + (progress * 100).toFixed() + '%';
-    runAsyncTask(
-      progressMsg,
-      async () => {
-        let B = piece < modulo ? M + 1 : M;
-        let typedB = new Float32Array(B * dim);
-        for (let i = 0; i < B; ++i) {
-          let vector = accessor(dataPoints[offset + i]);
-          for (let d = 0; d < dim; ++d) {
-            typedB[i * dim + d] = vector[d];
-          }
+    runAsyncTask(async () => {
+      messageCallback(progressMsg);
+      let B = piece < modulo ? M + 1 : M;
+      let typedB = new Float32Array(B * dim);
+      for (let i = 0; i < B; ++i) {
+        let vector = accessor(dataPoints[offset + i]);
+        for (let d = 0; d < dim; ++d) {
+          typedB[i * dim + d] = vector[d];
         }
-        const partialMatrix = tf.tensor(typedB, [dim, B]);
+      }
+      const partialMatrix = tf.tensor(typedB, [dim, B]);
 
-        const result = tf.matMul(bigMatrix, partialMatrix);
-        const partial = await result.array();
-        partialMatrix.dispose();
-        result.dispose();
+      const result = tf.matMul(bigMatrix, partialMatrix);
+      const partial = await result.array();
+      partialMatrix.dispose();
+      result.dispose();
 
-        progress += progressDiff;
-        for (let i = 0; i < B; i++) {
-          let kMin = new KMin<NearestEntry>(k);
-          let iReal = offset + i;
-          for (let j = 0; j < N; j++) {
-            if (j === iReal) {
-              continue;
-            }
-            let cosDist = 1 - partial[j][i];
-            kMin.add(cosDist, {index: j, dist: cosDist});
+      progress += progressDiff;
+      for (let i = 0; i < B; i++) {
+        let kMin = new KMin<NearestEntry>(k);
+        let iReal = offset + i;
+        for (let j = 0; j < N; j++) {
+          if (j === iReal) {
+            continue;
           }
-          nearest[iReal] = kMin.getMinKItems();
+          let cosDist = 1 - partial[j][i];
+          kMin.add(cosDist, {index: j, dist: cosDist});
         }
-        progress += progressDiff;
-        offset += B;
-        piece++;
-      },
-      KNN_GPU_MSG_ID
-    ).then(
+        nearest[iReal] = kMin.getMinKItems();
+      }
+      progress += progressDiff;
+      offset += B;
+      piece++;
+    }).then(
       () => {
         if (piece < numPieces) {
           step(resolve);
         } else {
-          console.log(KNN_GPU_MSG_ID);
           bigMatrix.dispose();
           resolve(nearest);
         }
       },
       (error) => {
         // GPU failed. Reverting back to CPU.
-        console.log(KNN_GPU_MSG_ID);
         let distFunc = (a, b, limit) => vector.cosDistNorm(a, b);
-        findKNN(dataPoints, k, accessor, distFunc).then((nearest) => {
-          resolve(nearest);
-        });
+        findKNN(dataPoints, k, accessor, distFunc, messageCallback).then(
+          (nearest) => {
+            resolve(nearest);
+          }
+        );
       }
     );
   }
@@ -146,9 +141,11 @@ export function findKNN<T>(
   dataPoints: T[],
   k: number,
   accessor: (dataPoint: T) => Float32Array,
-  dist: (a: vector.Vector, b: vector.Vector, limit: number) => number
+  dist: (a: vector.Vector, b: vector.Vector, limit: number) => number,
+  messageCallback: (message: string) => void
 ): Promise<NearestEntry[][]> {
-  return runAsyncTask<NearestEntry[][]>('Finding nearest neighbors...', () => {
+  return runAsyncTask<NearestEntry[][]>(() => {
+    messageCallback('Finding Nearest Neighbors...');
     let N = dataPoints.length;
     let nearest: NearestEntry[][] = new Array(N);
     // Find the distances from node i.
@@ -182,43 +179,6 @@ export function findKNN<T>(
     }
     return nearest;
   });
-}
-/** Calculates the minimum distance between a search point and a rectangle. */
-function minDist(
-  point: [number, number],
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number
-) {
-  let x = point[0];
-  let y = point[1];
-  let dx1 = x - x1;
-  let dx2 = x - x2;
-  let dy1 = y - y1;
-  let dy2 = y - y2;
-  if (dx1 * dx2 <= 0) {
-    // x is between x1 and x2
-    if (dy1 * dy2 <= 0) {
-      // (x,y) is inside the rectangle
-      return 0; // return 0 as point is in rect
-    }
-    return Math.min(Math.abs(dy1), Math.abs(dy2));
-  }
-  if (dy1 * dy2 <= 0) {
-    // y is between y1 and y2
-    // We know it is already inside the rectangle
-    return Math.min(Math.abs(dx1), Math.abs(dx2));
-  }
-  let corner: [number, number];
-  if (x > x2) {
-    // Upper-right vs lower-right.
-    corner = y > y2 ? [x2, y2] : [x2, y1];
-  } else {
-    // Upper-left vs lower-left.
-    corner = y > y2 ? [x1, y2] : [x1, y1];
-  }
-  return Math.sqrt(vector.dist22D([x, y], corner));
 }
 /**
  * Returns the nearest neighbors of a particular point.

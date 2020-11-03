@@ -22,7 +22,10 @@ import {
   getEmbeddingDataSet,
   getEmbeddingsMetric,
   getEmbeddingsSidebarWidth,
+  getEmbeddingStatusMessage,
 } from '../../../store/npmi_selectors';
+import * as npmiActions from '../../../actions';
+import {DataSet} from '../../../umap/data';
 
 /** @typehack */ import * as _typeHackRxjs from 'rxjs';
 
@@ -33,6 +36,9 @@ import {
       [metricName]="metricName$ | async"
       [width]="chartWidth$ | async"
       [embeddingDataSet]="embeddingDataSet$ | async"
+      [embeddingStatusMessage]="embeddingStatusMessage$ | async"
+      (onChangeStatusMessage)="changeStatusMessage($event)"
+      (onChangeEmbeddingDataSet)="changeEmbeddingDataSet($event)"
     ></projection-graph-component>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -47,6 +53,19 @@ export class ProjectionGraphContainer {
       })
     );
   readonly embeddingDataSet$ = this.store.pipe(select(getEmbeddingDataSet));
+  readonly embeddingStatusMessage$ = this.store.pipe(
+    select(getEmbeddingStatusMessage)
+  );
 
   constructor(private readonly store: Store<State>) {}
+
+  changeStatusMessage(message: string) {
+    this.store.dispatch(
+      npmiActions.changeEmbeddingStatusMessage({message: message})
+    );
+  }
+
+  changeEmbeddingDataSet(dataSet: DataSet) {
+    this.store.dispatch(npmiActions.changeEmbeddingDataSet({dataSet: dataSet}));
+  }
 }

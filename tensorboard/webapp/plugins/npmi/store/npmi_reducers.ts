@@ -29,6 +29,7 @@ import * as metricType from '../util/metric_type';
 // HACK: These imports are for type inference.
 // https://github.com/bazelbuild/rules_nodejs/issues/1013
 /** @typehack */ import * as _typeHackStore from '@ngrx/store/store';
+import {stateGetAccessorDimensions} from '../../../../plugins/projector/vz_projector/data';
 
 const initialState: NpmiState = {
   pluginDataLoaded: {
@@ -59,6 +60,7 @@ const initialState: NpmiState = {
   embeddingsMetric: '',
   embeddingsSidebarWidth: 500,
   embeddingsSidebarExpanded: true,
+  embeddingStatusMessage: '',
 };
 
 const reducer = createReducer(
@@ -427,6 +429,25 @@ const reducer = createReducer(
       return {
         ...state,
         embeddingsSidebarExpanded: !state.embeddingsSidebarExpanded,
+      };
+    }
+  ),
+  on(
+    actions.changeEmbeddingStatusMessage,
+    (state: NpmiState, {message}): NpmiState => {
+      return {
+        ...state,
+        embeddingStatusMessage: message,
+      };
+    }
+  ),
+  on(
+    actions.changeEmbeddingDataSet,
+    (state: NpmiState, {dataSet}): NpmiState => {
+      return {
+        ...state,
+        embeddingStatusMessage: '',
+        embeddingDataSet: dataSet,
       };
     }
   )
