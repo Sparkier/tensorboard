@@ -31,11 +31,15 @@ import {
   getAnnotationSort,
   getAnnotationsRegex,
   getEmbeddingData,
+  getEmbeddingFilter,
+  getViewActive,
+  getEmbeddingDataSet,
 } from '../../store';
 import {getRunSelection} from '../../../../core/store/core_selectors';
 import {
   filterAnnotations,
   removeHiddenAnnotations,
+  filterAnnotationsWithEmbedding,
 } from '../../util/filter_annotations';
 import {metricIsNpmiAndNotDiff} from '../../util/metric_type';
 import * as npmiActions from '../../actions';
@@ -106,8 +110,28 @@ export class AnnotationsListContainer {
       );
     })
   );
-  readonly filteredAnnotations$ = combineLatest([
+  readonly embeddingFilteredAnnotations$ = combineLatest([
     this.visibleAnnotations$,
+    this.store.select(getEmbeddingDataSet),
+    this.store.select(getEmbeddingFilter),
+    this.store.select(getViewActive),
+  ]).pipe(
+    map(
+      ([visibleAnnotations, embeddingDataSet, embeddingFilter, viewActive]) => {
+        if (embeddingDataSet) {
+          return filterAnnotationsWithEmbedding(
+            visibleAnnotations,
+            embeddingDataSet,
+            embeddingFilter,
+            viewActive
+          );
+        }
+        return visibleAnnotations;
+      }
+    )
+  );
+  readonly filteredAnnotations$ = combineLatest([
+    this.embeddingFilteredAnnotations$,
     this.store.select(getMetricArithmetic),
     this.store.select(getMetricFilters),
     this.activeRuns$,
@@ -117,7 +141,7 @@ export class AnnotationsListContainer {
     .pipe(
       map(
         ([
-          visibleAnnotations,
+          embeddingFilteredAnnotations,
           metricArithmetic,
           metricFilters,
           activeRuns,
@@ -125,7 +149,7 @@ export class AnnotationsListContainer {
           annotationsRegex,
         ]) => {
           return filterAnnotations(
-            visibleAnnotations,
+            embeddingFilteredAnnotations,
             activeRuns,
             metricArithmetic,
             metricFilters,

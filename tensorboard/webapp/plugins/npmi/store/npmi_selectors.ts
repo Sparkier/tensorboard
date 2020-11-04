@@ -204,3 +204,10 @@ export const getEmbeddingStatusMessage = createSelector(
     return state.embeddingStatusMessage;
   }
 );
+
+export const getEmbeddingFilter = createSelector(
+  selectNpmiState,
+  (state: NpmiState): number[][] => {
+    return state.embeddingFilter;
+  }
+);

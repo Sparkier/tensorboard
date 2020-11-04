@@ -13,9 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 import {Component, ChangeDetectionStrategy} from '@angular/core';
-import {Store, select} from '@ngrx/store';
 
+import {Store, select} from '@ngrx/store';
 import {map} from 'rxjs/operators';
+import {combineLatest} from 'rxjs';
 
 import {State} from '../../../../../app_state';
 import {
@@ -23,7 +24,21 @@ import {
   getEmbeddingsMetric,
   getEmbeddingsSidebarWidth,
   getEmbeddingStatusMessage,
-} from '../../../store/npmi_selectors';
+  getAnnotationData,
+  getHiddenAnnotations,
+  getShowHiddenAnnotations,
+  getMetricArithmetic,
+  getMetricFilters,
+  getAnnotationsRegex,
+  getRunToMetrics,
+  getEmbeddingFilter,
+} from '../../../store';
+import {getRunSelection} from '../../../../../core/store/core_selectors';
+import {
+  filterAnnotations,
+  removeHiddenAnnotations,
+} from '../../../util/filter_annotations';
+import {metricIsNpmiAndNotDiff} from '../../../util/metric_type';
 import * as npmiActions from '../../../actions';
 import {DataSet} from '../../../umap/data';
 
@@ -37,8 +52,11 @@ import {DataSet} from '../../../umap/data';
       [width]="chartWidth$ | async"
       [embeddingDataSet]="embeddingDataSet$ | async"
       [embeddingStatusMessage]="embeddingStatusMessage$ | async"
+      [filteredAnnotations]="filteredAnnotations$ | async"
+      [embeddingFilter]="embeddingFilter$ | async"
       (onChangeStatusMessage)="changeStatusMessage($event)"
       (onChangeEmbeddingDataSet)="changeEmbeddingDataSet($event)"
+      (onChangeEmbeddingFilter)="changeEmbeddingFilter($event)"
     ></projection-graph-component>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -56,6 +74,74 @@ export class ProjectionGraphContainer {
   readonly embeddingStatusMessage$ = this.store.pipe(
     select(getEmbeddingStatusMessage)
   );
+  readonly activeRuns$ = this.store.pipe(select(getRunSelection)).pipe(
+    map((runSelection) => {
+      if (!runSelection) return [];
+      return Array.from(runSelection.entries())
+        .filter((run) => run[1])
+        .map((run) => run[0]);
+    })
+  );
+  readonly activeMetrics$ = combineLatest([
+    this.store.select(getRunToMetrics),
+    this.activeRuns$,
+    this.store.select(getMetricFilters),
+  ]).pipe(
+    map(([runToMetrics, activeRuns, metricFilters]) => {
+      let metrics: string[] = [];
+      for (const run of activeRuns) {
+        if (runToMetrics[run]) {
+          metrics = metrics.concat(
+            runToMetrics[run].filter((key) => metricIsNpmiAndNotDiff(key))
+          );
+        }
+      }
+      metrics = [...new Set([...Object.keys(metricFilters), ...metrics])];
+      return metrics;
+    })
+  );
+  readonly visibleAnnotations$ = combineLatest([
+    this.store.select(getAnnotationData),
+    this.store.select(getHiddenAnnotations),
+    this.store.select(getShowHiddenAnnotations),
+  ]).pipe(
+    map(([annotationData, hiddenAnnotations, showHiddenAnnotations]) => {
+      return removeHiddenAnnotations(
+        annotationData,
+        hiddenAnnotations,
+        showHiddenAnnotations
+      );
+    })
+  );
+  readonly filteredAnnotations$ = combineLatest([
+    this.visibleAnnotations$,
+    this.store.select(getMetricArithmetic),
+    this.store.select(getMetricFilters),
+    this.activeRuns$,
+    this.activeMetrics$,
+    this.store.select(getAnnotationsRegex),
+  ]).pipe(
+    map(
+      ([
+        visibleAnnotations,
+        metricArithmetic,
+        metricFilters,
+        activeRuns,
+        activeMetrics,
+        annotationsRegex,
+      ]) => {
+        return filterAnnotations(
+          visibleAnnotations,
+          activeRuns,
+          metricArithmetic,
+          metricFilters,
+          activeMetrics,
+          annotationsRegex
+        );
+      }
+    )
+  );
+  readonly embeddingFilter$ = this.store.pipe(select(getEmbeddingFilter));
 
   constructor(private readonly store: Store<State>) {}
 
@@ -67,5 +153,9 @@ export class ProjectionGraphContainer {
 
   changeEmbeddingDataSet(dataSet: DataSet) {
     this.store.dispatch(npmiActions.changeEmbeddingDataSet({dataSet: dataSet}));
+  }
+
+  changeEmbeddingFilter(extent: number[][]) {
+    this.store.dispatch(npmiActions.changeEmbeddingFilter({extent}));
   }
 }

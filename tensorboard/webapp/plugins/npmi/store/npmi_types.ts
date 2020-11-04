@@ -103,6 +103,7 @@ export interface NpmiState {
   embeddingsSidebarWidth: number;
   embeddingsSidebarExpanded: boolean;
   embeddingStatusMessage: string;
+  embeddingFilter: number[][];
 }
 
 export interface State {

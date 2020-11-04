@@ -152,3 +152,8 @@ export const changeEmbeddingDataSet = createAction(
   '[NPMI] Change Embedding DataSet',
   props<{dataSet: DataSet}>()
 );
+
+export const changeEmbeddingFilter = createAction(
+  '[NPMI] Change Embedding Filter',
+  props<{extent: number[][]}>()
+);

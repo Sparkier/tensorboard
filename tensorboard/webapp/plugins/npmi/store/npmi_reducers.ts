@@ -61,6 +61,7 @@ const initialState: NpmiState = {
   embeddingsSidebarWidth: 500,
   embeddingsSidebarExpanded: true,
   embeddingStatusMessage: '',
+  embeddingFilter: [],
 };
 
 const reducer = createReducer(
@@ -448,6 +449,15 @@ const reducer = createReducer(
         ...state,
         embeddingStatusMessage: '',
         embeddingDataSet: dataSet,
+      };
+    }
+  ),
+  on(
+    actions.changeEmbeddingFilter,
+    (state: NpmiState, {extent}): NpmiState => {
+      return {
+        ...state,
+        embeddingFilter: extent,
       };
     }
   )

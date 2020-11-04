@@ -12,6 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
+import {DataSet} from '../umap/data';
 import {
   AnnotationDataListing,
   ArithmeticElement,
@@ -103,4 +104,31 @@ function checkValuesPassMetricArithmetic(
       return false;
     });
   });
+}
+
+export function filterAnnotationsWithEmbedding(
+  visibleAnnotations: AnnotationDataListing,
+  embeddingData: DataSet,
+  embeddingFilter: number[][],
+  viewActive: string
+): AnnotationDataListing {
+  if (
+    viewActive !== 'embeddings' ||
+    !embeddingFilter.length ||
+    !embeddingData.projections['umap']
+  ) {
+    return visibleAnnotations;
+  }
+  const data: AnnotationDataListing = {};
+  embeddingData.points.forEach((point) => {
+    if (
+      point.projections['umap-0'] >= embeddingFilter[0][0] &&
+      point.projections['umap-0'] <= embeddingFilter[1][0] &&
+      point.projections['umap-1'] >= embeddingFilter[0][1] &&
+      point.projections['umap-1'] <= embeddingFilter[1][1]
+    ) {
+      data[point.metadata.name] = visibleAnnotations[point.metadata.name];
+    }
+  });
+  return data;
 }

@@ -2,14 +2,12 @@ import {UMAP} from 'umap-js';
 import * as vector from '../../../../plugins/projector/vz_projector/vector';
 import * as util from '../../../../plugins/projector/vz_projector/util';
 import * as knn from './knn';
-import {
-  DataPoint,
-  UMAP_SAMPLE_SIZE,
-} from '../../../../plugins/projector/vz_projector/data';
+import {DataPoint} from '../../../../plugins/projector/vz_projector/data';
 import {runAsyncTask} from './async';
 
 export {DataPoint};
 const IS_FIREFOX = navigator.userAgent.toLowerCase().indexOf('firefox') >= 0;
+const UMAP_SAMPLE_SIZE = 200; // 20000;
 
 /**
  * Dataset contains a DataPoints array that should be treated as immutable. This
@@ -40,11 +38,13 @@ export class DataSet {
   async projectUmap(
     nComponents: number,
     nNeighbors: number,
+    minDist: number,
     messageCallback: (message: string) => void,
-    finishCallback: () => void
+    datasetCallback: (dataset: DataSet) => void
   ) {
     this.hasUmapRun = true;
-    this.umap = new UMAP({nComponents, nNeighbors});
+    datasetCallback(this);
+    this.umap = new UMAP({nComponents, nNeighbors, minDist});
     let currentEpoch = 0;
     const epochStepSize = 10;
     const sampledIndices = this.shuffledDataIndices.slice(0, UMAP_SAMPLE_SIZE);
@@ -93,7 +93,7 @@ export class DataSet {
             });
             this.projections['umap'] = true;
             this.hasUmapRun = true;
-            finishCallback();
+            datasetCallback(this);
             resolve();
           }
         }, 0).catch((error) => {
