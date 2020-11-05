@@ -43,6 +43,7 @@ import * as npmiActions from '../../../actions';
 import {DataSet} from '../../../umap/data';
 
 /** @typehack */ import * as _typeHackRxjs from 'rxjs';
+import {filterUmapIndices} from '../../../util/umap_indices';
 
 @Component({
   selector: 'npmi-projection-graph',
@@ -54,6 +55,7 @@ import {DataSet} from '../../../umap/data';
       [embeddingStatusMessage]="embeddingStatusMessage$ | async"
       [filteredAnnotations]="filteredAnnotations$ | async"
       [embeddingFilter]="embeddingFilter$ | async"
+      [umapIndices]="umapIndices$ | async"
       (onChangeStatusMessage)="changeStatusMessage($event)"
       (onChangeEmbeddingDataSet)="changeEmbeddingDataSet($event)"
       (onChangeEmbeddingFilter)="changeEmbeddingFilter($event)"
@@ -140,6 +142,14 @@ export class ProjectionGraphContainer {
         );
       }
     )
+  );
+  readonly umapIndices$ = combineLatest([
+    this.filteredAnnotations$,
+    this.embeddingDataSet$,
+  ]).pipe(
+    map(([filteredAnnotations, embeddingDataSet]) => {
+      return filterUmapIndices(filteredAnnotations, embeddingDataSet);
+    })
   );
   readonly embeddingFilter$ = this.store.pipe(select(getEmbeddingFilter));
 

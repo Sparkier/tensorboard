@@ -7,7 +7,7 @@ import {runAsyncTask} from './async';
 
 export {DataPoint};
 const IS_FIREFOX = navigator.userAgent.toLowerCase().indexOf('firefox') >= 0;
-const UMAP_SAMPLE_SIZE = 200; // 20000;
+const UMAP_SAMPLE_SIZE = 20000;
 
 /**
  * Dataset contains a DataPoints array that should be treated as immutable. This
@@ -39,6 +39,7 @@ export class DataSet {
     nComponents: number,
     nNeighbors: number,
     minDist: number,
+    umapIndices: number[],
     messageCallback: (message: string) => void,
     datasetCallback: (dataset: DataSet) => void
   ) {
@@ -47,7 +48,7 @@ export class DataSet {
     this.umap = new UMAP({nComponents, nNeighbors, minDist});
     let currentEpoch = 0;
     const epochStepSize = 10;
-    const sampledIndices = this.shuffledDataIndices.slice(0, UMAP_SAMPLE_SIZE);
+    const sampledIndices = umapIndices.slice(0, UMAP_SAMPLE_SIZE);
     const sampledData = sampledIndices.map((i) => this.points[i]);
     // TODO: Switch to a Float32-based UMAP internal
     const X = sampledData.map((x) => Array.from(x.vector));
@@ -91,6 +92,8 @@ export class DataSet {
                 dataPoint.projections['umap-2'] = result[i][2];
               }
             });
+            console.log(this.points[sampledIndices[0]].projections['umap-0']);
+            console.log(sampledIndices[0]);
             this.projections['umap'] = true;
             this.hasUmapRun = true;
             datasetCallback(this);

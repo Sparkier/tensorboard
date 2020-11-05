@@ -78,15 +78,19 @@ export class NpmiHttpServerDataSource implements NpmiDataSource {
               if (!embeddingData[annotation]) {
                 // If not already set
                 embeddingData[annotation] = embeddings[run][annotationIndex];
-                embeddingDataPoints.push({
-                  vector: new Float32Array(embeddings[run][annotationIndex]),
-                  index: index,
-                  metadata: {
-                    name: annotation,
-                  },
-                  projections: {},
-                });
-                index = index + 1;
+                if (
+                  embeddings[run][annotationIndex].some((item) => item !== 0)
+                ) {
+                  embeddingDataPoints.push({
+                    vector: new Float32Array(embeddings[run][annotationIndex]),
+                    index: index,
+                    metadata: {
+                      name: annotation,
+                    },
+                    projections: {},
+                  });
+                  index = index + 1;
+                }
               }
             }
             const metricToDataElements = new Map<string, ValueData>();

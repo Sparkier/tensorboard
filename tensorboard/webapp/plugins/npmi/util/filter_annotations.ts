@@ -112,13 +112,19 @@ export function filterAnnotationsWithEmbedding(
   embeddingFilter: number[][],
   viewActive: string
 ): AnnotationDataListing {
-  if (
-    viewActive !== 'embeddings' ||
-    !embeddingFilter.length ||
-    !embeddingData.projections['umap']
-  ) {
+  if (viewActive !== 'embeddings') {
+    // Not in Embeddings View, return all
     return visibleAnnotations;
   }
+  if (!embeddingFilter.length || !embeddingData.projections['umap']) {
+    // Not filtered, return all that are in the projection dataset (have a valid embedding)
+    const data: AnnotationDataListing = {};
+    embeddingData.points.forEach((point) => {
+      data[point.metadata.name] = visibleAnnotations[point.metadata.name];
+    });
+    return data;
+  }
+  // Return Filtered Annotations based on embedding
   const data: AnnotationDataListing = {};
   embeddingData.points.forEach((point) => {
     if (

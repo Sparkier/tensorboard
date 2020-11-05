@@ -33,6 +33,7 @@ ng_module(
         "//tensorboard/webapp/plugins/npmi/umap",
         "//tensorboard/webapp/plugins/npmi/util:filter_annotations",
         "//tensorboard/webapp/plugins/npmi/util:metric_type",
+        "//tensorboard/webapp/plugins/npmi/util:umap_indices",
         "//tensorboard/webapp/third_party:d3",
         "@npm//@angular/core",
         "@npm//@angular/forms",

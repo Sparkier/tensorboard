@@ -28,6 +28,7 @@ import {
 import * as d3 from '../../../../../third_party/d3';
 import {DataPoint, DataSet} from '../../../umap/data';
 import {AnnotationDataListing} from '../../../store/npmi_types';
+import {stripMetricString} from '../../../util/metric_type';
 
 @Component({
   selector: 'projection-graph-component',
@@ -42,6 +43,7 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   @Input() embeddingStatusMessage!: string;
   @Input() filteredAnnotations!: AnnotationDataListing;
   @Input() embeddingFilter!: number[][];
+  @Input() umapIndices!: number[];
   @Output() onChangeStatusMessage = new EventEmitter<string>();
   @Output() onChangeEmbeddingDataSet = new EventEmitter<DataSet>();
   @Output() onChangeEmbeddingFilter = new EventEmitter<number[][]>();
@@ -49,6 +51,7 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   private readonly chartContainer!: ElementRef<HTMLDivElement>;
   private umapDim = 2;
   private numNeighbors = 20;
+  private minDist = 0.1;
   private height: number = 0;
   private chartWidth: number = 0;
   private chartHeight: number = 0;
@@ -109,9 +112,7 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
     this.dotsGroup = this.drawContainer.append('g').attr('class', 'dotsGroup');
     this.xScale = d3.scaleLinear();
     this.yScale = d3.scaleLinear();
-    if (!this.embeddingDataSet.hasUmapRun) {
-      this.runUMAP();
-    }
+    this.runUMAP();
     this.drawBox();
     this.initializeBrush();
     this.redraw();
@@ -142,10 +143,12 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   }
 
   private runUMAP() {
+    console.log('umap');
     this.embeddingDataSet.projectUmap(
       this.umapDim,
       this.numNeighbors,
-      0.0001,
+      this.minDist,
+      this.umapIndices,
       (message: string) => {
         this.onChangeStatusMessage.emit(message);
       },
@@ -206,6 +209,7 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
         this.filteredAnnotations[point.metadata.name] &&
         point.projections['umap-0']
     );
+    console.log(this.embeddingDataSet.points);
     const dots = this.dotsGroup.selectAll('.umap-dots').data(points);
 
     dots
@@ -245,6 +249,9 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
         function (this: ProjectionGraphComponent, d: DataPoint): string {
           // Calculate Average nPMI value for this Annotation
           let valueData = this.filteredAnnotations[d.metadata.name];
+          valueData = valueData.filter(
+            (element) => element.metric === stripMetricString(this.metricName)
+          );
           let npmiValue: number | null = 0;
           let normalizationNumber = 0;
           for (const valueDataElement of valueData) {

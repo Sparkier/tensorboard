@@ -176,3 +176,13 @@ tf_ts_library(
         "@npm//rxjs",
     ],
 )
+
+ng_module(
+    name = "umap_indices",
+    srcs = [
+        "umap_indices.ts",
+    ],
+    deps = [
+        "//tensorboard/webapp/plugins/npmi/store:types",
+    ],
+)
