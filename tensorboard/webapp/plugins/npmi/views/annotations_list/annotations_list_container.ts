@@ -34,6 +34,7 @@ import {
   getEmbeddingFilter,
   getViewActive,
   getEmbeddingDataSet,
+  getProjection,
 } from '../../store';
 import {getRunSelection} from '../../../../core/store/core_selectors';
 import {
@@ -115,15 +116,23 @@ export class AnnotationsListContainer {
     this.store.select(getEmbeddingDataSet),
     this.store.select(getEmbeddingFilter),
     this.store.select(getViewActive),
+    this.store.select(getProjection),
   ]).pipe(
     map(
-      ([visibleAnnotations, embeddingDataSet, embeddingFilter, viewActive]) => {
+      ([
+        visibleAnnotations,
+        embeddingDataSet,
+        embeddingFilter,
+        viewActive,
+        projection,
+      ]) => {
         if (embeddingDataSet) {
           return filterAnnotationsWithEmbedding(
             visibleAnnotations,
             embeddingDataSet,
             embeddingFilter,
-            viewActive
+            viewActive,
+            projection
           );
         }
         return visibleAnnotations;

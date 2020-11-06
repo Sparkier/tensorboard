@@ -29,7 +29,6 @@ import * as metricType from '../util/metric_type';
 // HACK: These imports are for type inference.
 // https://github.com/bazelbuild/rules_nodejs/issues/1013
 /** @typehack */ import * as _typeHackStore from '@ngrx/store/store';
-import {stateGetAccessorDimensions} from '../../../../plugins/projector/vz_projector/data';
 
 const initialState: NpmiState = {
   pluginDataLoaded: {
@@ -62,6 +61,7 @@ const initialState: NpmiState = {
   embeddingsSidebarExpanded: true,
   embeddingStatusMessage: '',
   embeddingFilter: [],
+  projection: 'umap',
 };
 
 const reducer = createReducer(

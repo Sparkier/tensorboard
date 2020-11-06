@@ -32,6 +32,7 @@ import {
   getAnnotationsRegex,
   getRunToMetrics,
   getEmbeddingFilter,
+  getProjection,
 } from '../../../store';
 import {getRunSelection} from '../../../../../core/store/core_selectors';
 import {
@@ -56,6 +57,7 @@ import {filterUmapIndices} from '../../../util/umap_indices';
       [filteredAnnotations]="filteredAnnotations$ | async"
       [embeddingFilter]="embeddingFilter$ | async"
       [umapIndices]="umapIndices$ | async"
+      [projection]="projection$ | async"
       (onChangeStatusMessage)="changeStatusMessage($event)"
       (onChangeEmbeddingDataSet)="changeEmbeddingDataSet($event)"
       (onChangeEmbeddingFilter)="changeEmbeddingFilter($event)"
@@ -73,6 +75,7 @@ export class ProjectionGraphContainer {
       })
     );
   readonly embeddingDataSet$ = this.store.pipe(select(getEmbeddingDataSet));
+  readonly projection$ = this.store.pipe(select(getProjection));
   readonly embeddingStatusMessage$ = this.store.pipe(
     select(getEmbeddingStatusMessage)
   );

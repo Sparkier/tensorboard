@@ -44,12 +44,13 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   @Input() filteredAnnotations!: AnnotationDataListing;
   @Input() embeddingFilter!: number[][];
   @Input() umapIndices!: number[];
+  @Input() projection!: string;
   @Output() onChangeStatusMessage = new EventEmitter<string>();
   @Output() onChangeEmbeddingDataSet = new EventEmitter<DataSet>();
   @Output() onChangeEmbeddingFilter = new EventEmitter<number[][]>();
   @ViewChild('chart', {static: true, read: ElementRef})
   private readonly chartContainer!: ElementRef<HTMLDivElement>;
-  private umapDim = 2;
+  private projectionDims = 2;
   private numNeighbors = 20;
   private minDist = 0.1;
   private height: number = 0;
@@ -57,6 +58,7 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   private chartHeight: number = 0;
   private drawHeight: number = 0;
   private drawWidth: number = 0;
+  // private projection = 'umap'
   private readonly margin = {top: 10, right: 10, bottom: 10, left: 10};
   private readonly drawMargin = {top: 10, right: 10, bottom: 10, left: 10};
   // Drawing containers
@@ -143,9 +145,8 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   }
 
   private runUMAP() {
-    console.log('umap');
     this.embeddingDataSet.projectUmap(
-      this.umapDim,
+      this.projectionDims,
       this.numNeighbors,
       this.minDist,
       this.umapIndices,
@@ -163,13 +164,13 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
       maxX = -Infinity,
       minY = Infinity,
       maxY = -Infinity;
-    if (this.embeddingDataSet.projections['umap']) {
+    if (this.embeddingDataSet.projections[this.projection]) {
       this.embeddingDataSet.points.map((point) => {
-        if (point.projections['umap-0']) {
-          minX = Math.min(minX, point.projections['umap-0']);
-          maxX = Math.max(maxX, point.projections['umap-0']);
-          minY = Math.min(minY, point.projections['umap-1']);
-          maxY = Math.max(maxY, point.projections['umap-1']);
+        if (point.projections[`${this.projection}-0`]) {
+          minX = Math.min(minX, point.projections[`${this.projection}-0`]);
+          maxX = Math.max(maxX, point.projections[`${this.projection}-0`]);
+          minY = Math.min(minY, point.projections[`${this.projection}-1`]);
+          maxY = Math.max(maxY, point.projections[`${this.projection}-1`]);
         }
       });
     }
@@ -180,7 +181,7 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   // Drawing UI
   draw() {
     this.refreshBox();
-    if (this.embeddingDataSet.projections['umap']) {
+    if (this.embeddingDataSet.projections[this.projection]) {
       this.drawPlot();
       this.refreshBrush();
     }
@@ -207,25 +208,24 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
     const points = this.embeddingDataSet.points.filter(
       (point) =>
         this.filteredAnnotations[point.metadata.name] &&
-        point.projections['umap-0']
+        point.projections[`${this.projection}-0`]
     );
-    console.log(this.embeddingDataSet.points);
-    const dots = this.dotsGroup.selectAll('.umap-dots').data(points);
+    const dots = this.dotsGroup.selectAll('.projection-dots').data(points);
 
     dots
       .enter()
       .append('circle')
-      .attr('class', 'umap-dots')
+      .attr('class', 'projection-dots')
       .attr(
         'cx',
         function (this: ProjectionGraphComponent, d: DataPoint): number {
-          return this.xScale(d.projections['umap-0']);
+          return this.xScale(d.projections[`${this.projection}-0`]);
         }.bind(this)
       )
       .attr(
         'cy',
         function (this: ProjectionGraphComponent, d: DataPoint): number {
-          return this.yScale(d.projections['umap-1']);
+          return this.yScale(d.projections[`${this.projection}-1`]);
         }.bind(this)
       )
       .attr(
@@ -233,10 +233,14 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
         function (this: ProjectionGraphComponent, d: DataPoint): number {
           if (this.embeddingFilter.length) {
             if (
-              d.projections['umap-0'] >= this.embeddingFilter[0][0] &&
-              d.projections['umap-0'] <= this.embeddingFilter[1][0] &&
-              d.projections['umap-1'] >= this.embeddingFilter[0][1] &&
-              d.projections['umap-1'] <= this.embeddingFilter[1][1]
+              d.projections[`${this.projection}-0`] >=
+                this.embeddingFilter[0][0] &&
+              d.projections[`${this.projection}-0`] <=
+                this.embeddingFilter[1][0] &&
+              d.projections[`${this.projection}-1`] >=
+                this.embeddingFilter[0][1] &&
+              d.projections[`${this.projection}-1`] <=
+                this.embeddingFilter[1][1]
             ) {
               return 5;
             }
@@ -282,10 +286,14 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
         function (this: ProjectionGraphComponent, d: DataPoint): number {
           if (this.embeddingFilter.length) {
             if (
-              d.projections['umap-0'] >= this.embeddingFilter[0][0] &&
-              d.projections['umap-0'] <= this.embeddingFilter[1][0] &&
-              d.projections['umap-1'] >= this.embeddingFilter[0][1] &&
-              d.projections['umap-1'] <= this.embeddingFilter[1][1]
+              d.projections[`${this.projection}-0`] >=
+                this.embeddingFilter[0][0] &&
+              d.projections[`${this.projection}-0`] <=
+                this.embeddingFilter[1][0] &&
+              d.projections[`${this.projection}-1`] >=
+                this.embeddingFilter[0][1] &&
+              d.projections[`${this.projection}-1`] <=
+                this.embeddingFilter[1][1]
             ) {
               return 5;
             }
@@ -296,13 +304,13 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
       .attr(
         'cx',
         function (this: ProjectionGraphComponent, d: DataPoint): number {
-          return this.xScale(d.projections['umap-0']);
+          return this.xScale(d.projections[`${this.projection}-0`]);
         }.bind(this)
       )
       .attr(
         'cy',
         function (this: ProjectionGraphComponent, d: DataPoint): number {
-          return this.yScale(d.projections['umap-1']);
+          return this.yScale(d.projections[`${this.projection}-1`]);
         }.bind(this)
       );
 

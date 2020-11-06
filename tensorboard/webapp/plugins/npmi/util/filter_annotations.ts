@@ -110,13 +110,14 @@ export function filterAnnotationsWithEmbedding(
   visibleAnnotations: AnnotationDataListing,
   embeddingData: DataSet,
   embeddingFilter: number[][],
-  viewActive: string
+  viewActive: string,
+  projection: string
 ): AnnotationDataListing {
   if (viewActive !== 'embeddings') {
     // Not in Embeddings View, return all
     return visibleAnnotations;
   }
-  if (!embeddingFilter.length || !embeddingData.projections['umap']) {
+  if (!embeddingFilter.length || !embeddingData.projections[projection]) {
     // Not filtered, return all that are in the projection dataset (have a valid embedding)
     const data: AnnotationDataListing = {};
     embeddingData.points.forEach((point) => {
@@ -128,10 +129,10 @@ export function filterAnnotationsWithEmbedding(
   const data: AnnotationDataListing = {};
   embeddingData.points.forEach((point) => {
     if (
-      point.projections['umap-0'] >= embeddingFilter[0][0] &&
-      point.projections['umap-0'] <= embeddingFilter[1][0] &&
-      point.projections['umap-1'] >= embeddingFilter[0][1] &&
-      point.projections['umap-1'] <= embeddingFilter[1][1]
+      point.projections[`${projection}-0`] >= embeddingFilter[0][0] &&
+      point.projections[`${projection}-0`] <= embeddingFilter[1][0] &&
+      point.projections[`${projection}-1`] >= embeddingFilter[0][1] &&
+      point.projections[`${projection}-1`] <= embeddingFilter[1][1]
     ) {
       data[point.metadata.name] = visibleAnnotations[point.metadata.name];
     }

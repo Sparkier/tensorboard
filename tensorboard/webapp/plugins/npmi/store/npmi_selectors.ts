@@ -211,3 +211,10 @@ export const getEmbeddingFilter = createSelector(
     return state.embeddingFilter;
   }
 );
+
+export const getProjection = createSelector(
+  selectNpmiState,
+  (state: NpmiState): string => {
+    return state.projection;
+  }
+);
