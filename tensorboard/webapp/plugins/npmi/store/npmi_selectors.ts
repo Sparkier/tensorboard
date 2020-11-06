@@ -1,4 +1,3 @@
-import {select} from '@ngrx/store';
 /* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,9 +23,8 @@ import {
   ArithmeticElement,
   MetricFilterListing,
   AnnotationSort,
-  EmbeddingListing,
+  EmbeddingDataSet,
 } from './npmi_types';
-import {DataSet} from '../umap/data';
 
 // HACK: These imports are for type inference.
 // https://github.com/bazelbuild/rules_nodejs/issues/1013
@@ -58,16 +56,9 @@ export const getRunToMetrics = createSelector(
   }
 );
 
-export const getEmbeddingData = createSelector(
-  selectNpmiState,
-  (state: NpmiState): EmbeddingListing => {
-    return state.embeddingData;
-  }
-);
-
 export const getEmbeddingDataSet = createSelector(
   selectNpmiState,
-  (state: NpmiState): DataSet | undefined => {
+  (state: NpmiState): EmbeddingDataSet | undefined => {
     return state.embeddingDataSet;
   }
 );

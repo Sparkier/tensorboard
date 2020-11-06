@@ -37,7 +37,6 @@ const initialState: NpmiState = {
   },
   annotationData: {},
   runToMetrics: {},
-  embeddingData: {},
   selectedAnnotations: [],
   flaggedAnnotations: [],
   hiddenAnnotations: [],
@@ -94,7 +93,7 @@ const reducer = createReducer(
     actions.npmiPluginDataLoaded,
     (
       state: NpmiState,
-      {annotationData, metrics, embeddingData, embeddingDataSet}
+      {annotationData, metrics, embeddingDataSet}
     ): NpmiState => {
       const runToMetrics: MetricListing = {};
       for (const key in metrics) {
@@ -110,7 +109,6 @@ const reducer = createReducer(
         ...state,
         runToMetrics: runToMetrics,
         annotationData: annotationData,
-        embeddingData: embeddingData,
         embeddingDataSet: embeddingDataSet,
         pluginDataLoaded: {
           state: DataLoadState.LOADED,

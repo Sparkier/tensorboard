@@ -27,8 +27,8 @@ import {
   AnnotationDataListing,
   ValueData,
   EmbeddingListing,
+  EmbeddingDataSet,
 } from './../store/npmi_types';
-import {DataPoint, DataSet} from '../umap/data';
 
 /** @typehack */ import * as _typeHackRxjs from 'rxjs';
 
@@ -36,8 +36,7 @@ export abstract class NpmiDataSource {
   abstract fetchData(): Observable<{
     annotationData: AnnotationDataListing;
     metrics: MetricListing;
-    embeddingData: EmbeddingListing;
-    embeddingDataSet?: DataSet;
+    embeddingDataSet?: EmbeddingDataSet;
   }>;
 }
 
@@ -68,28 +67,26 @@ export class NpmiHttpServerDataSource implements NpmiDataSource {
     ).pipe(
       map(([annotations, metrics, values, embeddings]) => {
         const annotationData: AnnotationDataListing = {};
-        const embeddingData: EmbeddingListing = {};
-        const embeddingDataPoints: DataPoint[] = [];
+        const embeddingDataPoints: EmbeddingListing = {};
+        let embeddingDataSet: EmbeddingDataSet | undefined = undefined;
         let index = 0;
+
         for (const run of Object.keys(annotations)) {
           for (const annotationIndex in annotations[run]) {
             const annotation = annotations[run][annotationIndex];
             if (Object.keys(embeddings).length) {
               if (
                 embeddings[run][annotationIndex] &&
-                !embeddingData[annotation] &&
+                !embeddingDataPoints[annotation] &&
                 embeddings[run][annotationIndex].some((item) => item !== 0)
               ) {
                 // If not already set
-                embeddingData[annotation] = embeddings[run][annotationIndex];
-                embeddingDataPoints.push({
-                  vector: new Float32Array(embeddings[run][annotationIndex]),
+                embeddingDataPoints[annotation] = {
+                  vector: embeddings[run][annotationIndex],
                   index: index,
-                  metadata: {
-                    name: annotation,
-                  },
+                  name: annotation,
                   projections: {},
-                });
+                };
                 index = index + 1;
               }
             }
@@ -125,8 +122,10 @@ export class NpmiHttpServerDataSource implements NpmiDataSource {
             ];
           }
         }
-        const embeddingDataSet = new DataSet(embeddingDataPoints);
-        return {annotationData, metrics, embeddingData, embeddingDataSet};
+        if (Object.keys(embeddingDataPoints).length) {
+          embeddingDataSet = new EmbeddingDataSet(embeddingDataPoints);
+        }
+        return {annotationData, metrics, embeddingDataSet};
       }),
       catchError((error) => {
         if (
@@ -137,7 +136,6 @@ export class NpmiHttpServerDataSource implements NpmiDataSource {
           return of({
             annotationData: {},
             metrics: {},
-            embeddingData: {},
             embeddingDataSet: undefined,
           });
         }

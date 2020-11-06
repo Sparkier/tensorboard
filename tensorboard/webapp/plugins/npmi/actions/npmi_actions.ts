@@ -16,9 +16,8 @@ import {createAction, props} from '@ngrx/store';
 import {
   AnnotationDataListing,
   MetricListing,
-  EmbeddingListing,
+  EmbeddingDataSet,
 } from '../store/npmi_types';
-import {DataSet} from '../umap/data';
 
 // HACK: Below import is for type inference.
 // https://github.com/bazelbuild/rules_nodejs/issues/1013
@@ -38,8 +37,7 @@ export const npmiPluginDataLoaded = createAction(
   props<{
     annotationData: AnnotationDataListing;
     metrics: MetricListing;
-    embeddingData: EmbeddingListing;
-    embeddingDataSet?: DataSet;
+    embeddingDataSet?: EmbeddingDataSet;
   }>()
 );
 
@@ -150,7 +148,7 @@ export const changeEmbeddingStatusMessage = createAction(
 
 export const changeEmbeddingDataSet = createAction(
   '[NPMI] Change Embedding DataSet',
-  props<{dataSet: DataSet}>()
+  props<{dataSet: EmbeddingDataSet}>()
 );
 
 export const changeEmbeddingFilter = createAction(

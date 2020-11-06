@@ -14,7 +14,6 @@ ng_module(
         ":types",
         "//tensorboard/webapp/plugins/npmi/actions",
         "//tensorboard/webapp/plugins/npmi/data_source",
-        "//tensorboard/webapp/plugins/npmi/umap",
         "//tensorboard/webapp/plugins/npmi/util:metric_type",
         "@npm//@ngrx/store",
     ],
@@ -26,7 +25,7 @@ ng_module(
         "npmi_types.ts",
     ],
     deps = [
-        "//tensorboard/webapp/plugins/npmi/umap",
+        "//tensorboard/webapp/plugins/npmi/util:umap",
         "//tensorboard/webapp/types",
         "@npm//@ngrx/store",
         "@npm//rxjs",

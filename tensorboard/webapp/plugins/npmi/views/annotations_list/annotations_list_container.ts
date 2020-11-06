@@ -30,10 +30,9 @@ import {
   getSelectedAnnotations,
   getAnnotationSort,
   getAnnotationsRegex,
-  getEmbeddingData,
+  getEmbeddingDataSet,
   getEmbeddingFilter,
   getViewActive,
-  getEmbeddingDataSet,
   getProjection,
 } from '../../store';
 import {getRunSelection} from '../../../../core/store/core_selectors';
@@ -53,7 +52,7 @@ import {sortAnnotations} from '../../util/sort_annotations';
   template: `
     <annotations-list-component
       [annotations]="filteredAnnotations$ | async"
-      [embeddingData]="embeddingData$ | async"
+      [embeddingPoints]="embeddingPoints$ | async"
       [annotationsExpanded]="annotationsExpanded$ | async"
       [numAnnotations]="numAnnotations$ | async"
       [activeMetrics]="activeMetrics$ | async"
@@ -78,7 +77,15 @@ export class AnnotationsListContainer {
         .map((run) => run[0]);
     })
   );
-  readonly embeddingData$ = this.store.pipe(select(getEmbeddingData));
+  readonly embeddingData$ = this.store.pipe(select(getEmbeddingDataSet));
+  readonly embeddingPoints$ = this.embeddingData$.pipe(
+    map((embeddingData) => {
+      if (embeddingData === undefined) {
+        return {};
+      }
+      return embeddingData.points;
+    })
+  );
   readonly numActiveRuns$ = this.activeRuns$.pipe(map((runs) => runs.length));
   readonly activeMetrics$ = combineLatest([
     this.store.select(getRunToMetrics),
@@ -113,7 +120,7 @@ export class AnnotationsListContainer {
   );
   readonly embeddingFilteredAnnotations$ = combineLatest([
     this.visibleAnnotations$,
-    this.store.select(getEmbeddingDataSet),
+    this.embeddingData$,
     this.store.select(getEmbeddingFilter),
     this.store.select(getViewActive),
     this.store.select(getProjection),
@@ -176,10 +183,10 @@ export class AnnotationsListContainer {
   );
   readonly sortedAnnotations$ = combineLatest([
     this.filteredAnnotations$,
+    this.embeddingData$,
     this.store.pipe(select(getAnnotationSort)),
-    this.store.pipe(select(getEmbeddingData)),
   ]).pipe(
-    map(([annotations, sort, embeddingData]) => {
+    map(([annotations, embeddingData, sort]) => {
       return sortAnnotations(annotations, sort, embeddingData);
     })
   );

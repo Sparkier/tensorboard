@@ -26,8 +26,10 @@ import {
 } from '@angular/core';
 
 import * as d3 from '../../../../../third_party/d3';
-import {DataPoint, DataSet} from '../../../umap/data';
-import {AnnotationDataListing} from '../../../store/npmi_types';
+import {
+  AnnotationDataListing,
+  EmbeddingDataSet,
+} from '../../../store/npmi_types';
 import {stripMetricString} from '../../../util/metric_type';
 
 @Component({
@@ -39,14 +41,14 @@ import {stripMetricString} from '../../../util/metric_type';
 export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   @Input() metricName!: string;
   @Input() width!: number;
-  @Input() embeddingDataSet!: DataSet;
+  @Input() embeddingDataSet!: EmbeddingDataSet;
   @Input() embeddingStatusMessage!: string;
   @Input() filteredAnnotations!: AnnotationDataListing;
   @Input() embeddingFilter!: number[][];
   @Input() umapIndices!: number[];
   @Input() projection!: string;
   @Output() onChangeStatusMessage = new EventEmitter<string>();
-  @Output() onChangeEmbeddingDataSet = new EventEmitter<DataSet>();
+  @Output() onChangeEmbeddingDataSet = new EventEmitter<EmbeddingDataSet>();
   @Output() onChangeEmbeddingFilter = new EventEmitter<number[][]>();
   @ViewChild('chart', {static: true, read: ElementRef})
   private readonly chartContainer!: ElementRef<HTMLDivElement>;
@@ -153,7 +155,7 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
       (message: string) => {
         this.onChangeStatusMessage.emit(message);
       },
-      (dataset: DataSet) => {
+      (dataset: EmbeddingDataSet) => {
         this.onChangeEmbeddingDataSet.emit(dataset);
       }
     );
@@ -165,12 +167,34 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
       minY = Infinity,
       maxY = -Infinity;
     if (this.embeddingDataSet.projections[this.projection]) {
-      this.embeddingDataSet.points.map((point) => {
-        if (point.projections[`${this.projection}-0`]) {
-          minX = Math.min(minX, point.projections[`${this.projection}-0`]);
-          maxX = Math.max(maxX, point.projections[`${this.projection}-0`]);
-          minY = Math.min(minY, point.projections[`${this.projection}-1`]);
-          maxY = Math.max(maxY, point.projections[`${this.projection}-1`]);
+      this.embeddingDataSet.pointKeys.map((key) => {
+        if (
+          this.embeddingDataSet.points[key].projections[`${this.projection}-0`]
+        ) {
+          minX = Math.min(
+            minX,
+            this.embeddingDataSet.points[key].projections[
+              `${this.projection}-0`
+            ]
+          );
+          maxX = Math.max(
+            maxX,
+            this.embeddingDataSet.points[key].projections[
+              `${this.projection}-0`
+            ]
+          );
+          minY = Math.min(
+            minY,
+            this.embeddingDataSet.points[key].projections[
+              `${this.projection}-1`
+            ]
+          );
+          maxY = Math.max(
+            maxY,
+            this.embeddingDataSet.points[key].projections[
+              `${this.projection}-1`
+            ]
+          );
         }
       });
     }
@@ -205,54 +229,22 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   }
 
   private drawPlot() {
-    const points = this.embeddingDataSet.points.filter(
-      (point) =>
-        this.filteredAnnotations[point.metadata.name] &&
-        point.projections[`${this.projection}-0`]
+    const keys = this.embeddingDataSet.pointKeys.filter(
+      (key) =>
+        this.filteredAnnotations[key] &&
+        this.embeddingDataSet.points[key].projections[`${this.projection}-0`]
     );
-    const dots = this.dotsGroup.selectAll('.projection-dots').data(points);
+    const dots = this.dotsGroup.selectAll('.projection-dots').data(keys);
 
     dots
       .enter()
       .append('circle')
       .attr('class', 'projection-dots')
       .attr(
-        'cx',
-        function (this: ProjectionGraphComponent, d: DataPoint): number {
-          return this.xScale(d.projections[`${this.projection}-0`]);
-        }.bind(this)
-      )
-      .attr(
-        'cy',
-        function (this: ProjectionGraphComponent, d: DataPoint): number {
-          return this.yScale(d.projections[`${this.projection}-1`]);
-        }.bind(this)
-      )
-      .attr(
-        'r',
-        function (this: ProjectionGraphComponent, d: DataPoint): number {
-          if (this.embeddingFilter.length) {
-            if (
-              d.projections[`${this.projection}-0`] >=
-                this.embeddingFilter[0][0] &&
-              d.projections[`${this.projection}-0`] <=
-                this.embeddingFilter[1][0] &&
-              d.projections[`${this.projection}-1`] >=
-                this.embeddingFilter[0][1] &&
-              d.projections[`${this.projection}-1`] <=
-                this.embeddingFilter[1][1]
-            ) {
-              return 5;
-            }
-          }
-          return 2;
-        }.bind(this)
-      )
-      .attr(
         'fill',
-        function (this: ProjectionGraphComponent, d: DataPoint): string {
+        function (this: ProjectionGraphComponent, d: string): string {
           // Calculate Average nPMI value for this Annotation
-          let valueData = this.filteredAnnotations[d.metadata.name];
+          let valueData = this.filteredAnnotations[d];
           valueData = valueData.filter(
             (element) => element.metric === stripMetricString(this.metricName)
           );
@@ -282,35 +274,43 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
 
     dots
       .attr(
+        'cx',
+        function (this: ProjectionGraphComponent, d: string): number {
+          return this.xScale(
+            this.embeddingDataSet.points[d].projections[`${this.projection}-0`]
+          );
+        }.bind(this)
+      )
+      .attr(
+        'cy',
+        function (this: ProjectionGraphComponent, d: string): number {
+          return this.yScale(
+            this.embeddingDataSet.points[d].projections[`${this.projection}-1`]
+          );
+        }.bind(this)
+      )
+      .attr(
         'r',
-        function (this: ProjectionGraphComponent, d: DataPoint): number {
+        function (this: ProjectionGraphComponent, d: string): number {
           if (this.embeddingFilter.length) {
             if (
-              d.projections[`${this.projection}-0`] >=
-                this.embeddingFilter[0][0] &&
-              d.projections[`${this.projection}-0`] <=
-                this.embeddingFilter[1][0] &&
-              d.projections[`${this.projection}-1`] >=
-                this.embeddingFilter[0][1] &&
-              d.projections[`${this.projection}-1`] <=
-                this.embeddingFilter[1][1]
+              this.embeddingDataSet.points[d].projections[
+                `${this.projection}-0`
+              ] >= this.embeddingFilter[0][0] &&
+              this.embeddingDataSet.points[d].projections[
+                `${this.projection}-0`
+              ] <= this.embeddingFilter[1][0] &&
+              this.embeddingDataSet.points[d].projections[
+                `${this.projection}-1`
+              ] >= this.embeddingFilter[0][1] &&
+              this.embeddingDataSet.points[d].projections[
+                `${this.projection}-1`
+              ] <= this.embeddingFilter[1][1]
             ) {
               return 5;
             }
           }
           return 2;
-        }.bind(this)
-      )
-      .attr(
-        'cx',
-        function (this: ProjectionGraphComponent, d: DataPoint): number {
-          return this.xScale(d.projections[`${this.projection}-0`]);
-        }.bind(this)
-      )
-      .attr(
-        'cy',
-        function (this: ProjectionGraphComponent, d: DataPoint): number {
-          return this.yScale(d.projections[`${this.projection}-1`]);
         }.bind(this)
       );
 

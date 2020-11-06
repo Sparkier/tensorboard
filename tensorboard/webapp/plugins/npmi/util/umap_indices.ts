@@ -1,9 +1,9 @@
 import {AnnotationDataListing} from '../store/npmi_types';
-import {DataSet} from '../umap/data';
+import {EmbeddingDataSet} from './umap';
 
 export function filterUmapIndices(
   filteredAnnotations: AnnotationDataListing,
-  embeddingDataSet: DataSet | undefined
+  embeddingDataSet: EmbeddingDataSet | undefined
 ) {
   if (!embeddingDataSet) {
     return [];
@@ -11,9 +11,7 @@ export function filterUmapIndices(
   let indices: number[] = [];
   const annotations = new Set(Object.keys(filteredAnnotations));
   for (const index of embeddingDataSet.shuffledDataIndices) {
-    if (
-      annotations.has(embeddingDataSet.points[index].metadata.name as string)
-    ) {
+    if (annotations.has(embeddingDataSet.pointKeys[index])) {
       indices.push(index);
     }
   }

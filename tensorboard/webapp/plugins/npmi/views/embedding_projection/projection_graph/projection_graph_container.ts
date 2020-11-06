@@ -34,6 +34,7 @@ import {
   getEmbeddingFilter,
   getProjection,
 } from '../../../store';
+import {EmbeddingDataSet} from '../../../store/npmi_types';
 import {getRunSelection} from '../../../../../core/store/core_selectors';
 import {
   filterAnnotations,
@@ -41,7 +42,6 @@ import {
 } from '../../../util/filter_annotations';
 import {metricIsNpmiAndNotDiff} from '../../../util/metric_type';
 import * as npmiActions from '../../../actions';
-import {DataSet} from '../../../umap/data';
 
 /** @typehack */ import * as _typeHackRxjs from 'rxjs';
 import {filterUmapIndices} from '../../../util/umap_indices';
@@ -164,7 +164,7 @@ export class ProjectionGraphContainer {
     );
   }
 
-  changeEmbeddingDataSet(dataSet: DataSet) {
+  changeEmbeddingDataSet(dataSet: EmbeddingDataSet) {
     this.store.dispatch(npmiActions.changeEmbeddingDataSet({dataSet: dataSet}));
   }
 

@@ -13,7 +13,6 @@ tf_ts_library(
     deps = [
         "//tensorboard/webapp/plugins/npmi/data_source",
         "//tensorboard/webapp/plugins/npmi/store:types",
-        "//tensorboard/webapp/plugins/npmi/umap",
         "@npm//@ngrx/store",
     ],
 )

@@ -12,13 +12,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-import {DataSet} from '../umap/data';
 import {
   AnnotationDataListing,
   ArithmeticElement,
   MetricFilterListing,
   ArithmeticKind,
   ValueData,
+  EmbeddingDataSet,
 } from './../store/npmi_types';
 import {stripMetricString} from './metric_type';
 
@@ -108,7 +108,7 @@ function checkValuesPassMetricArithmetic(
 
 export function filterAnnotationsWithEmbedding(
   visibleAnnotations: AnnotationDataListing,
-  embeddingData: DataSet,
+  embeddingData: EmbeddingDataSet,
   embeddingFilter: number[][],
   viewActive: string,
   projection: string
@@ -120,21 +120,25 @@ export function filterAnnotationsWithEmbedding(
   if (!embeddingFilter.length || !embeddingData.projections[projection]) {
     // Not filtered, return all that are in the projection dataset (have a valid embedding)
     const data: AnnotationDataListing = {};
-    embeddingData.points.forEach((point) => {
-      data[point.metadata.name] = visibleAnnotations[point.metadata.name];
+    embeddingData.pointKeys.forEach((key) => {
+      data[key] = visibleAnnotations[key];
     });
     return data;
   }
   // Return Filtered Annotations based on embedding
   const data: AnnotationDataListing = {};
-  embeddingData.points.forEach((point) => {
+  embeddingData.pointKeys.forEach((key) => {
     if (
-      point.projections[`${projection}-0`] >= embeddingFilter[0][0] &&
-      point.projections[`${projection}-0`] <= embeddingFilter[1][0] &&
-      point.projections[`${projection}-1`] >= embeddingFilter[0][1] &&
-      point.projections[`${projection}-1`] <= embeddingFilter[1][1]
+      embeddingData.points[key].projections[`${projection}-0`] >=
+        embeddingFilter[0][0] &&
+      embeddingData.points[key].projections[`${projection}-0`] <=
+        embeddingFilter[1][0] &&
+      embeddingData.points[key].projections[`${projection}-1`] >=
+        embeddingFilter[0][1] &&
+      embeddingData.points[key].projections[`${projection}-1`] <=
+        embeddingFilter[1][1]
     ) {
-      data[point.metadata.name] = visibleAnnotations[point.metadata.name];
+      data[key] = visibleAnnotations[key];
     }
   });
   return data;

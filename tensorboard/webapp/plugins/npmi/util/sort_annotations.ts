@@ -15,6 +15,7 @@ limitations under the License.
 import {
   AnnotationDataListing,
   AnnotationSort,
+  EmbeddingDataSet,
   EmbeddingListing,
   SortOrder,
 } from '../store/npmi_types';
@@ -23,14 +24,17 @@ import {stripMetricString} from './metric_type';
 export function sortAnnotations(
   annotationData: AnnotationDataListing,
   sort: AnnotationSort,
-  embeddingData: EmbeddingListing
+  embeddingData: EmbeddingDataSet | undefined
 ): string[] {
   let result = Object.keys(annotationData);
   if (sort.metric === '') {
     return result;
   }
-  if (sort.order === SortOrder.SIMILAR || sort.order === SortOrder.DISSIMILAR) {
-    return (result = embeddingSort(embeddingData, result, sort));
+  if (
+    (sort.order === SortOrder.SIMILAR || sort.order === SortOrder.DISSIMILAR) &&
+    embeddingData !== undefined
+  ) {
+    return (result = embeddingSort(embeddingData.points, result, sort));
   }
   return classicSort(annotationData, result, sort);
 }
@@ -92,8 +96,8 @@ function embeddingSort(
         } else {
           distance[annotation] = embeddingData[annotation]
             ? calculateDistance(
-                embeddingData[sort.metric],
-                embeddingData[annotation]
+                embeddingData[sort.metric].vector,
+                embeddingData[annotation].vector
               )
             : Number.POSITIVE_INFINITY;
         }
@@ -111,8 +115,8 @@ function embeddingSort(
         } else {
           distance[annotation] = embeddingData[annotation]
             ? calculateDistance(
-                embeddingData[sort.metric],
-                embeddingData[annotation],
+                embeddingData[sort.metric].vector,
+                embeddingData[annotation].vector,
                 Number.NEGATIVE_INFINITY
               )
             : Number.NEGATIVE_INFINITY;

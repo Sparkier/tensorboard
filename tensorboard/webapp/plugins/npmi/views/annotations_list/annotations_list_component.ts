@@ -34,7 +34,7 @@ import {
 })
 export class AnnotationsListComponent {
   @Input() annotations!: AnnotationDataListing;
-  @Input() embeddingData!: EmbeddingListing;
+  @Input() embeddingPoints!: EmbeddingListing;
   @Input() annotationsExpanded!: boolean;
   @Input() numAnnotations!: number;
   @Input() annotationSort!: AnnotationSort;

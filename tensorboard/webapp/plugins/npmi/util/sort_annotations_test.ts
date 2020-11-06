@@ -57,7 +57,9 @@ describe('sort annotations utils', () => {
       order: SortOrder.SIMILAR,
     };
     const embeddingData: EmbeddingListing = {
-      annotation_1: [0.5],
+      annotation_1: {
+        vector: [0.5],
+      },
       annotation_2: [-0.2],
       annotation_3: [0.1],
     };

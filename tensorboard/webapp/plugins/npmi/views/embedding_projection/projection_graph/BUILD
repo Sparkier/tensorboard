@@ -30,7 +30,6 @@ ng_module(
         "//tensorboard/webapp/plugins/npmi/actions",
         "//tensorboard/webapp/plugins/npmi/store",
         "//tensorboard/webapp/plugins/npmi/store:types",
-        "//tensorboard/webapp/plugins/npmi/umap",
         "//tensorboard/webapp/plugins/npmi/util:filter_annotations",
         "//tensorboard/webapp/plugins/npmi/util:metric_type",
         "//tensorboard/webapp/plugins/npmi/util:umap_indices",

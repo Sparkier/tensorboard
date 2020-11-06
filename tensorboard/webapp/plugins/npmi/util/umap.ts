@@ -1,9 +1,21 @@
 import {UMAP} from 'umap-js';
 import * as util from '../../../../plugins/projector/vz_projector/util';
-import {DataPoint} from '../../../../plugins/projector/vz_projector/data';
 
-export {DataPoint};
 const UMAP_SAMPLE_SIZE = 20000;
+
+export interface EmbeddingDataPoint {
+  vector: number[];
+  name: string;
+  sequenceIndex?: number;
+  index: number;
+  projections: {
+    [key: string]: number;
+  };
+}
+
+export interface EmbeddingListing {
+  [annotation: string]: EmbeddingDataPoint;
+}
 
 /**
  * Dataset contains a DataPoints array that should be treated as immutable. This
@@ -12,8 +24,9 @@ const UMAP_SAMPLE_SIZE = 20000;
  * requires normalizing and shifting the vector space, we make a copy of the
  * data so we can still always create new subsets based on the original data.
  */
-export class DataSet {
-  points: DataPoint[];
+export class EmbeddingDataSet {
+  points: EmbeddingListing;
+  pointKeys: string[];
   shuffledDataIndices: number[] = [];
   /**
    * This keeps a list of all current projections so you can easily test to see
@@ -27,9 +40,10 @@ export class DataSet {
   private umap: UMAP;
 
   /** Creates a new Dataset */
-  constructor(points: DataPoint[]) {
+  constructor(points: EmbeddingListing) {
     this.points = points;
-    this.shuffledDataIndices = util.shuffle(util.range(this.points.length));
+    this.pointKeys = Object.keys(this.points);
+    this.shuffledDataIndices = util.shuffle(util.range(this.pointKeys.length));
   }
 
   /** Runs UMAP on the data. */
@@ -39,23 +53,24 @@ export class DataSet {
     minDist: number,
     umapIndices: number[],
     messageCallback: (message: string) => void,
-    datasetCallback: (dataset: DataSet) => void
+    datasetCallback: (dataset: EmbeddingDataSet) => void
   ) {
     this.hasUmapRun = true;
     const epochStepSize = 10;
     const sampledIndices = umapIndices.slice(0, UMAP_SAMPLE_SIZE);
-    const sampledData = sampledIndices.map((i) => this.points[i]);
-    const X = sampledData.map((x) => Array.from(x.vector));
+    const sampledData = sampledIndices.map(
+      (i) => this.points[this.pointKeys[i]].vector
+    );
     messageCallback('Calculating UMAP');
     this.umap = new UMAP({nComponents, nNeighbors, minDist});
-    const epochs = this.umap.initializeFit(X);
-    await this.umap.fitAsync(X, (epochNumber) => {
+    const epochs = this.umap.initializeFit(sampledData);
+    await this.umap.fitAsync(sampledData, (epochNumber) => {
       if (epochNumber === epochs) {
         const result = this.umap.getEmbedding();
         this.projections['umap'] = true;
         this.hasUmapRun = true;
         sampledIndices.forEach((index, i) => {
-          const dataPoint = this.points[index];
+          const dataPoint = this.points[this.pointKeys[index]];
           dataPoint.projections['umap-0'] = result[i][0];
           dataPoint.projections['umap-1'] = result[i][1];
         });
