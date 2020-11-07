@@ -64,6 +64,7 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   private readonly margin = {top: 10, right: 10, bottom: 10, left: 10};
   private readonly drawMargin = {top: 10, right: 10, bottom: 10, left: 10};
   // Drawing containers
+  private tooltip!: d3.Selection<HTMLDivElement, unknown, null, undefined>;
   private svg!: d3.Selection<
     SVGElement,
     unknown,
@@ -103,6 +104,13 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
 
   ngAfterViewInit(): void {
     this.svg = d3.select(this.chartContainer.nativeElement).select('svg');
+    this.tooltip = d3
+      .select(this.chartContainer.nativeElement)
+      .select<HTMLDivElement>('.tooltip-container')
+      .style('position', 'absolute')
+      .style('z-index', '10')
+      .style('visibility', 'hidden')
+      .text('a simple tooltip');
     this.updateDimensions();
     this.mainContainer = this.svg
       .append('g')
@@ -208,8 +216,8 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   draw() {
     this.refreshBox();
     if (this.embeddingDataSet.projections[this.projection]) {
-      this.drawPlot();
       this.refreshBrush();
+      this.drawPlot();
     }
   }
 
@@ -243,6 +251,11 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
       .enter()
       .append('circle')
       .attr('class', 'projection-dots')
+      .on('mouseover', this.handleAnnotationMouseOver.bind(this))
+      .on('mouseout', this.handleAnnotationMouseOut.bind(this));
+
+    dotEnters
+      .merge(dots)
       .attr(
         'fill',
         function (this: ProjectionGraphComponent, d: string): string {
@@ -273,10 +286,7 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
             return d3.interpolateReds(npmiValue * -1);
           }
         }.bind(this)
-      );
-
-    dotEnters
-      .merge(dots)
+      )
       .attr(
         'cx',
         function (this: ProjectionGraphComponent, d: string): number {
@@ -333,7 +343,7 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
         this.drawHeight + this.drawMargin.bottom,
       ],
     ]);
-    this.drawContainer.call(this.brush);
+    this.dotsGroup.call(this.brush);
   }
 
   // Called on Interaction
@@ -349,5 +359,41 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
     } else {
       this.onChangeEmbeddingFilter.emit([]);
     }
+  }
+
+  private handleAnnotationMouseOver(
+    this: ProjectionGraphComponent,
+    d: string,
+    i: number
+  ) {
+    const absoluteMousePos = d3.mouse(this.chartContainer.nativeElement);
+    let xPos = {
+      pos: 'left',
+      num: absoluteMousePos[0] + 10,
+    };
+    // On the right half, place the label to the left
+    if (absoluteMousePos[0] > this.width / 2.0) {
+      xPos = {
+        pos: 'right',
+        num: this.width - absoluteMousePos[0] + 10,
+      };
+    }
+    this.tooltip
+      .html(d)
+      .style(xPos.pos, `${xPos.num}px`)
+      .style('top', `${absoluteMousePos[1]}px`)
+      .style('visibility', 'visible');
+  }
+
+  private handleAnnotationMouseOut(
+    this: ProjectionGraphComponent,
+    d: string,
+    i: number
+  ) {
+    this.tooltip
+      .style('visibility', 'hidden')
+      .style('left', '')
+      .style('right', '')
+      .html('');
   }
 }
