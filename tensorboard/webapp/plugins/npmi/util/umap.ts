@@ -55,6 +55,10 @@ export class EmbeddingDataSet {
     messageCallback: (message: string) => void,
     datasetCallback: (dataset: EmbeddingDataSet) => void
   ) {
+    if (umapIndices.length < nNeighbors) {
+      messageCallback('Error: Too few data points selected.');
+      return;
+    }
     this.hasUmapRun = true;
     const epochStepSize = 10;
     const sampledIndices = umapIndices.slice(0, UMAP_SAMPLE_SIZE);
@@ -78,7 +82,7 @@ export class EmbeddingDataSet {
         return false;
       }
       if (epochNumber % epochStepSize === 0) {
-        messageCallback(`Epoch ${epochNumber}`);
+        messageCallback(`UMAP epoch ${epochNumber}/${epochs}`);
       }
     });
   }

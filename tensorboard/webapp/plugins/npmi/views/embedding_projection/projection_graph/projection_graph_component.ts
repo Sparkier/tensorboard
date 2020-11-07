@@ -116,13 +116,15 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
     this.dotsGroup = this.drawContainer.append('g').attr('class', 'dotsGroup');
     this.xScale = d3.scaleLinear();
     this.yScale = d3.scaleLinear();
-    this.runUMAP();
     this.drawBox();
     this.initializeBrush();
     this.redraw();
   }
 
   ngOnChanges(changes: SimpleChanges) {
+    if (changes.umapIndices) {
+      this.runUMAP();
+    }
     if (this.svg) {
       this.redraw();
     }
@@ -234,9 +236,10 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
         this.filteredAnnotations[key] &&
         this.embeddingDataSet.points[key].projections[`${this.projection}-0`]
     );
-    const dots = this.dotsGroup.selectAll('.projection-dots').data(keys);
-
-    dots
+    const dots = this.dotsGroup
+      .selectAll<SVGCircleElement, unknown>('.projection-dots')
+      .data(keys);
+    const dotEnters = dots
       .enter()
       .append('circle')
       .attr('class', 'projection-dots')
@@ -272,7 +275,8 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
         }.bind(this)
       );
 
-    dots
+    dotEnters
+      .merge(dots)
       .attr(
         'cx',
         function (this: ProjectionGraphComponent, d: string): number {

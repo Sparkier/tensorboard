@@ -15,7 +15,7 @@ limitations under the License.
 import {Component, ChangeDetectionStrategy} from '@angular/core';
 
 import {Store, select} from '@ngrx/store';
-import {map} from 'rxjs/operators';
+import {map, withLatestFrom} from 'rxjs/operators';
 import {combineLatest} from 'rxjs';
 
 import {State} from '../../../../../app_state';
@@ -146,10 +146,8 @@ export class ProjectionGraphContainer {
       }
     )
   );
-  readonly umapIndices$ = combineLatest([
-    this.filteredAnnotations$,
-    this.embeddingDataSet$,
-  ]).pipe(
+  readonly umapIndices$ = this.filteredAnnotations$.pipe(
+    withLatestFrom(this.embeddingDataSet$),
     map(([filteredAnnotations, embeddingDataSet]) => {
       return filterUmapIndices(filteredAnnotations, embeddingDataSet);
     })
