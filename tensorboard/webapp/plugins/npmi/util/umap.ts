@@ -38,6 +38,7 @@ export class EmbeddingDataSet {
   // UMAP
   hasUmapRun = false;
   private umap: UMAP;
+  umapRun = 0;
 
   /** Creates a new Dataset */
   constructor(points: EmbeddingListing) {
@@ -55,6 +56,7 @@ export class EmbeddingDataSet {
     messageCallback: (message: string) => void,
     datasetCallback: (dataset: EmbeddingDataSet) => void
   ) {
+    this.umapRun = this.umapRun + 1;
     if (umapIndices.length < nNeighbors) {
       messageCallback('Error: Too few data points selected.');
       return;
@@ -68,8 +70,11 @@ export class EmbeddingDataSet {
     messageCallback('Calculating UMAP');
     this.umap = new UMAP({nComponents, nNeighbors, minDist});
     const epochs = this.umap.initializeFit(sampledData);
+    const runNumber = this.umapRun;
     await this.umap.fitAsync(sampledData, (epochNumber) => {
-      if (epochNumber === epochs) {
+      if (this.umapRun !== runNumber) {
+        return false;
+      } else if (epochNumber === epochs) {
         const result = this.umap.getEmbedding();
         this.projections['umap'] = true;
         this.hasUmapRun = true;
@@ -80,8 +85,7 @@ export class EmbeddingDataSet {
         });
         datasetCallback(this);
         return false;
-      }
-      if (epochNumber % epochStepSize === 0) {
+      } else if (epochNumber % epochStepSize === 0) {
         messageCallback(`UMAP epoch ${epochNumber}/${epochs}`);
       }
     });

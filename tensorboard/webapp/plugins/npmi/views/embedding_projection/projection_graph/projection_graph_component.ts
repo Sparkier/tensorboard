@@ -179,6 +179,7 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
     if (this.embeddingDataSet.projections[this.projection]) {
       this.embeddingDataSet.pointKeys.map((key) => {
         if (
+          this.filteredAnnotations[key] &&
           this.embeddingDataSet.points[key].projections[`${this.projection}-0`]
         ) {
           minX = Math.min(
