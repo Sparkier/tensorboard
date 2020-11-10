@@ -47,6 +47,7 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   @Input() embeddingFilter!: number[][];
   @Input() umapIndices!: number[];
   @Input() projection!: string;
+  @Input() selectedAnnotations!: string[];
   @Output() onChangeStatusMessage = new EventEmitter<string>();
   @Output() onChangeEmbeddingDataSet = new EventEmitter<EmbeddingDataSet>();
   @Output() onChangeEmbeddingFilter = new EventEmitter<number[][]>();
@@ -64,7 +65,6 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   private readonly margin = {top: 10, right: 10, bottom: 10, left: 10};
   private readonly drawMargin = {top: 10, right: 10, bottom: 10, left: 10};
   // Drawing containers
-  private tooltip!: d3.Selection<HTMLDivElement, unknown, null, undefined>;
   private svg!: d3.Selection<
     SVGElement,
     unknown,
@@ -104,13 +104,6 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
 
   ngAfterViewInit(): void {
     this.svg = d3.select(this.chartContainer.nativeElement).select('svg');
-    this.tooltip = d3
-      .select(this.chartContainer.nativeElement)
-      .select<HTMLDivElement>('.tooltip-container')
-      .style('position', 'absolute')
-      .style('z-index', '10')
-      .style('visibility', 'hidden')
-      .text('a simple tooltip');
     this.updateDimensions();
     this.mainContainer = this.svg
       .append('g')
@@ -125,8 +118,8 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
     this.xScale = d3.scaleLinear();
     this.yScale = d3.scaleLinear();
     this.drawBox();
-    this.initializeBrush();
     this.redraw();
+    this.initializeBrush();
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -217,8 +210,8 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   draw() {
     this.refreshBox();
     if (this.embeddingDataSet.projections[this.projection]) {
-      this.refreshBrush();
       this.drawPlot();
+      this.refreshBrush();
     }
   }
 
@@ -240,20 +233,24 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   }
 
   private drawPlot() {
-    const keys = this.embeddingDataSet.pointKeys.filter(
-      (key) =>
-        this.filteredAnnotations[key] &&
-        this.embeddingDataSet.points[key].projections[`${this.projection}-0`]
-    );
+    const selectedSet = new Set(this.selectedAnnotations);
+    const keys = this.embeddingDataSet.pointKeys
+      .filter(
+        (key) =>
+          this.filteredAnnotations[key] &&
+          this.embeddingDataSet.points[key].projections[`${this.projection}-0`]
+      )
+      .sort((a, _) => {
+        if (selectedSet.has(a)) return 1;
+        return -1;
+      });
     const dots = this.dotsGroup
       .selectAll<SVGCircleElement, unknown>('.projection-dots')
       .data(keys);
     const dotEnters = dots
       .enter()
       .append('circle')
-      .attr('class', 'projection-dots')
-      .on('mouseover', this.handleAnnotationMouseOver.bind(this))
-      .on('mouseout', this.handleAnnotationMouseOut.bind(this));
+      .attr('class', 'projection-dots');
 
     dotEnters
       .merge(dots)
@@ -288,6 +285,10 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
           }
         }.bind(this)
       )
+      .attr('stroke', function (d: string): string {
+        if (selectedSet.has(d)) return 'black';
+        return 'lightgrey';
+      })
       .attr(
         'cx',
         function (this: ProjectionGraphComponent, d: string): number {
@@ -325,7 +326,7 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
               return 5;
             }
           }
-          return 2;
+          return 3;
         }.bind(this)
       );
 
@@ -360,41 +361,5 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
     } else {
       this.onChangeEmbeddingFilter.emit([]);
     }
-  }
-
-  private handleAnnotationMouseOver(
-    this: ProjectionGraphComponent,
-    d: string,
-    i: number
-  ) {
-    const absoluteMousePos = d3.mouse(this.chartContainer.nativeElement);
-    let xPos = {
-      pos: 'left',
-      num: absoluteMousePos[0] + 10,
-    };
-    // On the right half, place the label to the left
-    if (absoluteMousePos[0] > this.width / 2.0) {
-      xPos = {
-        pos: 'right',
-        num: this.width - absoluteMousePos[0] + 10,
-      };
-    }
-    this.tooltip
-      .html(d)
-      .style(xPos.pos, `${xPos.num}px`)
-      .style('top', `${absoluteMousePos[1]}px`)
-      .style('visibility', 'visible');
-  }
-
-  private handleAnnotationMouseOut(
-    this: ProjectionGraphComponent,
-    d: string,
-    i: number
-  ) {
-    this.tooltip
-      .style('visibility', 'hidden')
-      .style('left', '')
-      .style('right', '')
-      .html('');
   }
 }

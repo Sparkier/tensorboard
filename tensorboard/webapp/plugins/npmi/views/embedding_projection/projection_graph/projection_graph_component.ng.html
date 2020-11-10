@@ -20,7 +20,6 @@ limitations under the License.
   </div>
   <div #chart class="chart">
     <svg class="draw-area"></svg>
-    <div class="tooltip-container"></div>
     <div *ngIf="embeddingStatusMessage !== ''" class="status-panel">
       <mat-spinner
         *ngIf="!embeddingStatusMessage.startsWith('Error')"

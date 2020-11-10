@@ -33,6 +33,7 @@ import {
   getRunToMetrics,
   getEmbeddingFilter,
   getProjection,
+  getSelectedAnnotations,
 } from '../../../store';
 import {EmbeddingDataSet} from '../../../store/npmi_types';
 import {getRunSelection} from '../../../../../core/store/core_selectors';
@@ -58,6 +59,7 @@ import {filterUmapIndices} from '../../../util/umap_indices';
       [embeddingFilter]="embeddingFilter$ | async"
       [umapIndices]="umapIndices$ | async"
       [projection]="projection$ | async"
+      [selectedAnnotations]="selectedAnnotations$ | async"
       (onChangeStatusMessage)="changeStatusMessage($event)"
       (onChangeEmbeddingDataSet)="changeEmbeddingDataSet($event)"
       (onChangeEmbeddingFilter)="changeEmbeddingFilter($event)"
@@ -153,6 +155,9 @@ export class ProjectionGraphContainer {
     })
   );
   readonly embeddingFilter$ = this.store.pipe(select(getEmbeddingFilter));
+  readonly selectedAnnotations$ = this.store.pipe(
+    select(getSelectedAnnotations)
+  );
 
   constructor(private readonly store: Store<State>) {}
 
