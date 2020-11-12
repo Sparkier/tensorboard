@@ -396,7 +396,7 @@ export class ViolinFilterComponent implements AfterViewInit, OnChanges {
       let min = this.chartData.extremes.min;
       if (
         extent[0] <= this.drawHeight + this.margin.top &&
-        extent[1] >= this.drawHeight
+        extent[1] > this.drawHeight
       ) {
         includeNaN = true;
       }
