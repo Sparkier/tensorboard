@@ -93,12 +93,6 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   // Scales and axis
   private xScale!: d3.ScaleLinear<number, number>;
   private yScale!: d3.ScaleLinear<number, number>;
-  private graphBox!: d3.Selection<
-    SVGRectElement,
-    unknown,
-    HTMLElement | null,
-    undefined
-  >;
   // Brush
   private readonly brush: d3.BrushBehavior<unknown> = d3.brush();
 
@@ -117,7 +111,6 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
     this.dotsGroup = this.drawContainer.append('g').attr('class', 'dotsGroup');
     this.xScale = d3.scaleLinear();
     this.yScale = d3.scaleLinear();
-    this.drawBox();
     this.redraw();
     this.initializeBrush();
   }
@@ -208,28 +201,10 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
 
   // Drawing UI
   draw() {
-    this.refreshBox();
     if (this.embeddingDataSet.projections[this.projection]) {
       this.drawPlot();
       this.refreshBrush();
     }
-  }
-
-  private drawBox() {
-    this.graphBox = this.mainContainer
-      .append('rect')
-      .style('stroke', 'black')
-      .style('fill', 'none')
-      .attr('x', 0)
-      .attr('y', 0)
-      .attr('width', this.chartWidth)
-      .attr('height', this.chartHeight);
-  }
-
-  private refreshBox() {
-    this.graphBox
-      .attr('width', this.chartWidth)
-      .attr('height', this.chartHeight);
   }
 
   private drawPlot() {
@@ -287,7 +262,7 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
       )
       .attr('stroke', function (d: string): string {
         if (selectedSet.has(d)) return 'black';
-        return 'lightgrey';
+        return 'grey';
       })
       .attr(
         'cx',

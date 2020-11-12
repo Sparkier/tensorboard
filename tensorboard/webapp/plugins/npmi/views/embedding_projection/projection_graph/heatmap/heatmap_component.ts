@@ -141,7 +141,9 @@ export class HeatmapComponent implements AfterViewInit, OnChanges {
       this.heatmapCanvas.nativeElement.width,
       this.heatmapCanvas.nativeElement.height
     );
-    this.constructHeatmapData();
+    if (this.embeddingDataSet.projections[this.projection]) {
+      this.constructHeatmapData();
+    }
   }
 
   private constructHeatmapData() {

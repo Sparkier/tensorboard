@@ -76,8 +76,9 @@ export class EmbeddingDataSet {
     datasetCallback: (dataset: EmbeddingDataSet) => void
   ) {
     this.umapRun = this.umapRun + 1;
-    if (umapIndices.length < nNeighbors) {
-      messageCallback('Error: Too few data points selected.');
+    this.projections['umap'] = false;
+    if (umapIndices.length <= nNeighbors) {
+      messageCallback('Error: Please select more data points.');
       return;
     }
     this.hasUmapRun = true;
