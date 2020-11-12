@@ -41,10 +41,29 @@ export class EmbeddingDataSet {
   umapRun = 0;
 
   /** Creates a new Dataset */
-  constructor(points: EmbeddingListing) {
+  constructor(
+    points: EmbeddingListing,
+    fullProps?: {
+      pointKeys: string[];
+      shuffledDataIndices: number[];
+      projections: {[projection: string]: boolean};
+      hasUmapRun: boolean;
+      umapRun: number;
+    }
+  ) {
     this.points = points;
-    this.pointKeys = Object.keys(this.points);
-    this.shuffledDataIndices = util.shuffle(util.range(this.pointKeys.length));
+    if (fullProps === undefined) {
+      this.pointKeys = Object.keys(this.points);
+      this.shuffledDataIndices = util.shuffle(
+        util.range(this.pointKeys.length)
+      );
+    } else {
+      this.pointKeys = fullProps.pointKeys;
+      this.shuffledDataIndices = fullProps.shuffledDataIndices;
+      this.projections = fullProps.projections;
+      this.hasUmapRun = fullProps.hasUmapRun;
+      this.umapRun = fullProps.umapRun;
+    }
   }
 
   /** Runs UMAP on the data. */

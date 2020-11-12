@@ -14,26 +14,13 @@ limitations under the License.
 ==============================================================================*/
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {FormsModule} from '@angular/forms';
 
-import {MatButtonModule} from '@angular/material/button';
-import {MatIconModule} from '@angular/material/icon';
-import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
-
-import {ProjectionGraphComponent} from './projection_graph_component';
-import {ProjectionGraphContainer} from './projection_graph_container';
-import {HeatmapModule} from './heatmap/heatmap_module';
+import {HeatmapComponent} from './heatmap_component';
+import {HeatmapContainer} from './heatmap_container';
 
 @NgModule({
-  declarations: [ProjectionGraphComponent, ProjectionGraphContainer],
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatIconModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
-    HeatmapModule,
-  ],
-  exports: [ProjectionGraphContainer],
+  declarations: [HeatmapComponent, HeatmapContainer],
+  imports: [CommonModule],
+  exports: [HeatmapContainer],
 })
-export class ProjectionGraphModule {}
+export class HeatmapModule {}

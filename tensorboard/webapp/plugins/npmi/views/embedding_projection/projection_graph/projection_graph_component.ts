@@ -62,8 +62,8 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
   private drawHeight: number = 0;
   private drawWidth: number = 0;
   // private projection = 'umap'
-  private readonly margin = {top: 10, right: 10, bottom: 10, left: 10};
-  private readonly drawMargin = {top: 10, right: 10, bottom: 10, left: 10};
+  readonly margin = {top: 10, right: 10, bottom: 10, left: 10};
+  readonly drawMargin = {top: 10, right: 10, bottom: 10, left: 10};
   // Drawing containers
   private svg!: d3.Selection<
     SVGElement,

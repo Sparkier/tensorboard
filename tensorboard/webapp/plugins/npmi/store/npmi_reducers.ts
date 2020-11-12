@@ -23,12 +23,14 @@ import {
   ArithmeticElement,
   Operator,
   ArithmeticKind,
+  EmbeddingDataSet,
 } from './npmi_types';
 import * as metricType from '../util/metric_type';
 
 // HACK: These imports are for type inference.
 // https://github.com/bazelbuild/rules_nodejs/issues/1013
 /** @typehack */ import * as _typeHackStore from '@ngrx/store/store';
+import {ScatterPlotRectangleSelector} from '../../../../plugins/projector/vz_projector/scatterPlotRectangleSelector';
 
 const initialState: NpmiState = {
   pluginDataLoaded: {
@@ -443,10 +445,17 @@ const reducer = createReducer(
   on(
     actions.changeEmbeddingDataSet,
     (state: NpmiState, {dataSet}): NpmiState => {
+      const newDataSet = new EmbeddingDataSet(dataSet.points, {
+        pointKeys: dataSet.pointKeys,
+        shuffledDataIndices: dataSet.shuffledDataIndices,
+        projections: dataSet.projections,
+        hasUmapRun: dataSet.hasUmapRun,
+        umapRun: dataSet.umapRun,
+      });
       return {
         ...state,
         embeddingStatusMessage: '',
-        embeddingDataSet: dataSet,
+        embeddingDataSet: newDataSet,
       };
     }
   ),

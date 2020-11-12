@@ -19,6 +19,13 @@ limitations under the License.
     <div class="chart-heading">{{metricName}}</div>
   </div>
   <div #chart class="chart">
+    <npmi-heatmap
+      class="heatmap"
+      [filteredAnnotations]="filteredAnnotations"
+      [umapIndices]="umapIndices"
+      [margin]="margin"
+      [drawMargin]="drawMargin"
+    ></npmi-heatmap>
     <svg class="draw-area"></svg>
     <div *ngIf="embeddingStatusMessage !== ''" class="status-panel">
       <mat-spinner

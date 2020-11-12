@@ -198,3 +198,10 @@ ng_module(
         "//tensorboard/webapp/plugins/npmi/store:types",
     ],
 )
+
+ng_module(
+    name = "gaussian",
+    srcs = [
+        "gaussian.ts",
+    ],
+)
