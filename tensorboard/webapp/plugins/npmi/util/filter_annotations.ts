@@ -20,7 +20,7 @@ import {
   ValueData,
   EmbeddingDataSet,
 } from './../store/npmi_types';
-import {stripMetricString} from './metric_type';
+import {metricIsMetricCount, stripMetricString} from './metric_type';
 
 export function filterAnnotations(
   annotationData: AnnotationDataListing,
@@ -42,6 +42,9 @@ export function filterAnnotations(
     }
     let valueDataElements = entry[1];
     // Remove all inactive runs and keep only metrics currently displayed
+    if (!valueDataElements) {
+      return;
+    }
     valueDataElements = valueDataElements.filter((valueDataElement) => {
       return (
         allRuns.has(valueDataElement.run) &&

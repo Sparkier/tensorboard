@@ -126,7 +126,6 @@ export class ProjectionGraphContainer {
     this.store.select(getMetricFilters),
     this.activeRuns$,
     this.activeMetrics$,
-    this.store.select(getAnnotationsRegex),
   ]).pipe(
     map(
       ([
@@ -135,7 +134,6 @@ export class ProjectionGraphContainer {
         metricFilters,
         activeRuns,
         activeMetrics,
-        annotationsRegex,
       ]) => {
         return filterAnnotations(
           visibleAnnotations,
@@ -143,7 +141,7 @@ export class ProjectionGraphContainer {
           metricArithmetic,
           metricFilters,
           activeMetrics,
-          annotationsRegex
+          ''
         );
       }
     )
