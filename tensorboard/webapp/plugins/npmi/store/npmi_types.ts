@@ -46,6 +46,7 @@ export enum ArithmeticKind {
 export interface ValueData {
   nPMIValue: number | null;
   countValue: number | null;
+  annotationCountValue: number | null;
   annotation: Annotation;
   metric: Metric;
   run: string;
@@ -53,6 +54,15 @@ export interface ValueData {
 
 export interface MetricListing {
   [runId: string]: Metric[];
+}
+
+export interface MetricCountListing {
+  [runId: string]: MetricCountData[];
+}
+
+export interface MetricCountData {
+  metric: string;
+  count: number | null;
 }
 
 export interface MetricFilterListing {
@@ -82,6 +92,7 @@ export interface NpmiState {
   pluginDataLoaded: LoadState;
   annotationData: AnnotationDataListing;
   runToMetrics: MetricListing;
+  metricCounts: MetricCountListing;
   embeddingDataSet?: EmbeddingDataSet;
 
   // based on user interaction

@@ -23,6 +23,7 @@ import {
   getShowCounts,
   getSidebarWidth,
   getAnnotationSort,
+  getMetricCounts,
 } from '../../../store';
 import {ValueData} from '../../../store/npmi_types';
 import * as npmiActions from '../../../actions';
@@ -40,6 +41,7 @@ import * as npmiActions from '../../../actions';
       [annotation]="annotation"
       [runHeight]="runHeight"
       [hasEmbedding]="hasEmbedding"
+      [metricCounts]="metricCounts$ | async"
       [sort]="sort$ | async"
       [selectedAnnotations]="selectedAnnotations$ | async"
       [flaggedAnnotations]="flaggedAnnotations$ | async"
@@ -66,6 +68,7 @@ export class AnnotationContainer {
   readonly selectedAnnotations$ = this.store.select(getSelectedAnnotations);
   readonly showCounts$ = this.store.select(getShowCounts);
   readonly sidebarWidth$ = this.store.select(getSidebarWidth);
+  readonly metricCounts$ = this.store.select(getMetricCounts);
 
   constructor(private readonly store: Store<State>) {}
 

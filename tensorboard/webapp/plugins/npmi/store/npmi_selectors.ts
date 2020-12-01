@@ -19,6 +19,7 @@ import {
   LoadState,
   AnnotationDataListing,
   MetricListing,
+  MetricCountListing,
   State,
   ArithmeticElement,
   MetricFilterListing,
@@ -53,6 +54,13 @@ export const getRunToMetrics = createSelector(
   selectNpmiState,
   (state: NpmiState): MetricListing => {
     return state.runToMetrics;
+  }
+);
+
+export const getMetricCounts = createSelector(
+  selectNpmiState,
+  (state: NpmiState): MetricCountListing => {
+    return state.metricCounts;
   }
 );
 

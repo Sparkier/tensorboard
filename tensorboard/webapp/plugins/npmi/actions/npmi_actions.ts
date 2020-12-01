@@ -17,6 +17,7 @@ import {
   AnnotationDataListing,
   MetricListing,
   EmbeddingDataSet,
+  MetricCountListing,
 } from '../store/npmi_types';
 
 // HACK: Below import is for type inference.
@@ -38,6 +39,7 @@ export const npmiPluginDataLoaded = createAction(
     annotationData: AnnotationDataListing;
     metrics: MetricListing;
     embeddingDataSet?: EmbeddingDataSet;
+    metricCounts: MetricCountListing;
   }>()
 );
 

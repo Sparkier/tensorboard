@@ -80,3 +80,11 @@ limitations under the License.
 .clickable-annotation {
   cursor: pointer;
 }
+
+.tooltip-container {
+  font-size: 10px;
+  background-color: mat-color($tb-background, selected-button);
+  width: fit-content;
+  padding: 3px;
+  border-radius: 5px;
+}

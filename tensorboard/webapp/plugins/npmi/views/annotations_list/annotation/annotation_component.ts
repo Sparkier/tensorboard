@@ -32,6 +32,7 @@ import {
   TfColorScale,
   SortOrder,
   AnnotationSort,
+  MetricCountListing,
 } from '../../../store/npmi_types';
 import * as d3 from '../../../../../third_party/d3';
 import {stripMetricString} from '../../../util/metric_type';
@@ -55,6 +56,7 @@ export class AnnotationComponent implements AfterViewInit, OnChanges {
   @Input() annotation!: string;
   @Input() runHeight!: number;
   @Input() hasEmbedding!: boolean;
+  @Input() metricCounts!: MetricCountListing;
   @Input() sort!: AnnotationSort;
   // Only to trigger OnChanges to re-render the component.
   @Input() sidebarWidth!: number;
@@ -128,6 +130,7 @@ export class AnnotationComponent implements AfterViewInit, OnChanges {
   private yScale!: d3.ScalePoint<string>;
   private sizeScale!: d3.ScaleLinear<number, number>;
   private countSizeScale!: d3.ScaleLinear<number, number>;
+  private tooltip!: d3.Selection<HTMLDivElement, unknown, null, undefined>;
 
   ngAfterViewInit(): void {
     const runsColorScale = (document.createElement(
@@ -135,6 +138,13 @@ export class AnnotationComponent implements AfterViewInit, OnChanges {
     ) as TfColorScale).runsColorScale;
     this.colorScale = runsColorScale ? runsColorScale : this.colorScale;
     this.svg = d3.select(this.annotationContainer.nativeElement).select('svg');
+    this.tooltip = d3
+      .select(this.annotationContainer.nativeElement)
+      .select<HTMLDivElement>('.tooltip-container')
+      .style('position', 'absolute')
+      .style('z-index', '10')
+      .style('visibility', 'hidden')
+      .text('a simple tooltip');
     this.xScale = d3.scalePoint<string>().padding(0);
     this.yScale = d3.scalePoint<string>().padding(0);
     this.sizeScale = d3.scaleLinear().domain([0.0, 1.0]);
@@ -536,7 +546,50 @@ export class AnnotationComponent implements AfterViewInit, OnChanges {
           return '';
         }
         return Intl.NumberFormat().format(d.countValue);
-      });
+      })
+      .on(
+        'mouseover',
+        function (this: AnnotationComponent, d: ValueData) {
+          let metricCount = this.metricCounts[d.run].filter(
+            (key) => key.metric === d.metric
+          )[0].count;
+          const annotationString =
+            d.annotationCountValue === null
+              ? 'null'
+              : Intl.NumberFormat().format(d.annotationCountValue);
+          const metricString =
+            metricCount === null
+              ? 'null'
+              : Intl.NumberFormat().format(metricCount);
+          this.tooltip
+            .html(`Annotation: ${annotationString} Metric: ${metricString}`)
+            .style('visibility', 'visible');
+        }.bind(this)
+      )
+      .on(
+        'mousemove',
+        function (this: AnnotationComponent) {
+          const absoluteMousePos = d3.mouse(
+            this.annotationContainer.nativeElement
+          );
+          const containerRect = document
+            .getElementById('annotation-rows')!
+            .getBoundingClientRect();
+          const rowRect = this.annotationContainer.nativeElement.getBoundingClientRect();
+          const left =
+            rowRect.left - containerRect.left + absoluteMousePos[0] + 20;
+          const top = rowRect.top - containerRect.top + absoluteMousePos[1];
+
+          this.tooltip.style('left', `${left}px`);
+          this.tooltip.style('top', `${top}px`);
+        }.bind(this)
+      )
+      .on(
+        'mouseout',
+        function (this: AnnotationComponent) {
+          this.tooltip.style('visibility', 'hidden');
+        }.bind(this)
+      );
 
     countTexts.exit().remove();
   }

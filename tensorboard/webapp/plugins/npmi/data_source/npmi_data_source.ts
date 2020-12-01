@@ -24,6 +24,7 @@ import {
 import * as metric_type from '../util/metric_type';
 import {
   MetricListing,
+  MetricCountListing,
   AnnotationDataListing,
   ValueData,
   EmbeddingListing,
@@ -37,6 +38,7 @@ export abstract class NpmiDataSource {
     annotationData: AnnotationDataListing;
     metrics: MetricListing;
     embeddingDataSet?: EmbeddingDataSet;
+    metricCounts: MetricCountListing;
   }>;
 }
 
@@ -67,65 +69,96 @@ export class NpmiHttpServerDataSource implements NpmiDataSource {
     ).pipe(
       map(([annotations, metrics, values, embeddings]) => {
         const annotationData: AnnotationDataListing = {};
+        const metricCounts: MetricCountListing = {};
         const embeddingDataPoints: EmbeddingListing = {};
         let embeddingDataSet: EmbeddingDataSet | undefined = undefined;
         let index = 0;
 
         for (const run of Object.keys(annotations)) {
+          let labelStats: (number | null)[] = [];
           for (const annotationIndex in annotations[run]) {
             const annotation = annotations[run][annotationIndex];
-            if (Object.keys(embeddings).length) {
-              if (
-                embeddings[run][annotationIndex] &&
-                !embeddingDataPoints[annotation] &&
-                embeddings[run][annotationIndex].some((item) => item !== 0)
-              ) {
-                // If not already set
-                embeddingDataPoints[annotation] = {
-                  vector: embeddings[run][annotationIndex],
-                  index: index,
-                  name: annotation,
-                  projections: {},
-                };
-                index = index + 1;
+            // This is a special field that captures stats about the metric
+            if (annotation === 'Comparison Label Stats') {
+              labelStats = values[run][annotationIndex];
+            } else {
+              if (Object.keys(embeddings).length) {
+                if (
+                  embeddings[run][annotationIndex] &&
+                  !embeddingDataPoints[annotation] &&
+                  embeddings[run][annotationIndex].some((item) => item !== 0)
+                ) {
+                  // If not already set
+                  embeddingDataPoints[annotation] = {
+                    vector: embeddings[run][annotationIndex],
+                    index: index,
+                    name: annotation,
+                    projections: {},
+                  };
+                  index = index + 1;
+                }
               }
+              const metricToDataElements = new Map<string, ValueData>();
+              let count = null;
+              for (const metricIndex in metrics[run]) {
+                const metric = metrics[run][metricIndex];
+                if (metric_type.metricIsCount(metric)) {
+                  // Set count value
+                  count = values[run][annotationIndex][metricIndex];
+                } else {
+                  // Create ValueData for annotation, run, metric combination
+                  const metricString = metric_type.stripMetricString(metric);
+                  if (metricString !== undefined) {
+                    let dataElement = metricToDataElements.get(metricString);
+                    if (!dataElement) {
+                      dataElement = {
+                        nPMIValue: null,
+                        countValue: null,
+                        annotationCountValue: count,
+                        annotation: annotation,
+                        metric: metricString,
+                        run: run,
+                      };
+                      metricToDataElements.set(metricString, dataElement);
+                    }
+                    if (metric_type.metricIsMetricCount(metric)) {
+                      dataElement.countValue =
+                        values[run][annotationIndex][metricIndex];
+                    } else if (metric_type.metricIsNpmi(metric)) {
+                      dataElement.nPMIValue =
+                        values[run][annotationIndex][metricIndex];
+                    }
+                  }
+                }
+              }
+              const existing = annotationData[annotation]
+                ? annotationData[annotation]
+                : [];
+              annotationData[annotation] = [
+                ...existing,
+                ...metricToDataElements.values(),
+              ];
             }
-            const metricToDataElements = new Map<string, ValueData>();
-            for (const metricIndex in metrics[run]) {
-              const metric = metrics[run][metricIndex];
-              const metricString = metric_type.stripMetricString(metric);
-              let dataElement = metricToDataElements.get(metricString);
-              if (!dataElement) {
-                dataElement = {
-                  nPMIValue: null,
-                  countValue: null,
-                  annotation: annotation,
-                  metric: metricString,
-                  run: run,
-                };
-                metricToDataElements.set(metricString, dataElement);
-              }
-              if (metric_type.metricIsMetricCount(metric)) {
-                dataElement.countValue =
-                  values[run][annotationIndex][metricIndex];
-              } else if (metric_type.metricIsNpmi(metric)) {
-                dataElement.nPMIValue =
-                  values[run][annotationIndex][metricIndex];
-              }
+          }
+          for (const metricIndex in metrics[run]) {
+            if (metric_type.metricIsMetricCount(metrics[run][metricIndex])) {
+              const existing = metricCounts[run] ? metricCounts[run] : [];
+              const count = {
+                metric: metric_type.stripMetricString(
+                  metrics[run][metricIndex]
+                ),
+                count: labelStats[metricIndex],
+              };
+              metricCounts[run] = [...existing, count];
             }
-            const existing = annotationData[annotation]
-              ? annotationData[annotation]
-              : [];
-            annotationData[annotation] = [
-              ...existing,
-              ...metricToDataElements.values(),
-            ];
           }
         }
+        console.log(metricCounts);
         if (Object.keys(embeddingDataPoints).length) {
           embeddingDataSet = new EmbeddingDataSet(embeddingDataPoints);
         }
-        return {annotationData, metrics, embeddingDataSet};
+
+        return {annotationData, metrics, embeddingDataSet, metricCounts};
       }),
       catchError((error) => {
         if (
@@ -137,6 +170,7 @@ export class NpmiHttpServerDataSource implements NpmiDataSource {
             annotationData: {},
             metrics: {},
             embeddingDataSet: undefined,
+            metricCounts: {},
           });
         }
         return throwError(error);

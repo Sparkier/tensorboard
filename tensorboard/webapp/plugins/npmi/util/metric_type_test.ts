@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 import {
+  metricIsCount,
   metricIsMetricCount,
   metricIsNpmi,
   metricIsNpmiAndNotDiff,
@@ -21,6 +22,23 @@ import {
 
 describe('metric type utils', () => {
   describe('metric is count', () => {
+    it('returns true if the metric equals count', () => {
+      const metric = 'count';
+      expect(metricIsCount(metric)).toBeTrue();
+    });
+
+    it('returns false if the metric only contains count@', () => {
+      const metric = 'count@test';
+      expect(metricIsCount(metric)).toBeFalse();
+    });
+
+    it('returns false if the metric does not contain count', () => {
+      const metric = 'foo@';
+      expect(metricIsCount(metric)).toBeFalse();
+    });
+  });
+
+  describe('metric is metric count', () => {
     it('returns true if the metric starts with count@', () => {
       const metric = 'count@test';
       expect(metricIsMetricCount(metric)).toBeTrue();
