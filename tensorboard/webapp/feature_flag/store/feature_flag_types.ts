@@ -13,15 +13,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-import {FeatureValue} from '../types';
+import {FeatureFlags} from '../types';
 
-export const FEAUTURE_FLAG_FEATURE_KEY = 'feature';
+export const FEATURE_FLAG_FEATURE_KEY = 'feature';
 
 export interface FeatureFlagState {
-  enabledExperimentalPlugins: string[];
-  [featureId: string]: FeatureValue;
+  isFeatureFlagsLoaded: boolean;
+  features: FeatureFlags;
 }
 
 export interface State {
-  [FEAUTURE_FLAG_FEATURE_KEY]?: FeatureFlagState;
+  [FEATURE_FLAG_FEATURE_KEY]?: FeatureFlagState;
 }

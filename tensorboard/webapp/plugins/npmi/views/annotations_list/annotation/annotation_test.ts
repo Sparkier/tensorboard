@@ -12,6 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
+import {NO_ERRORS_SCHEMA} from '@angular/core';
 import {TestBed, ComponentFixture} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 
@@ -30,6 +31,7 @@ import {
   getHiddenAnnotations,
   getShowCounts,
 } from '../../../store';
+import {getRunColorMap} from '../../../../../selectors';
 
 /** @typehack */ import * as _typeHackStore from '@ngrx/store';
 
@@ -102,6 +104,7 @@ describe('Npmi Annotations List Row', () => {
           initialState: appStateFromNpmiState(createNpmiState()),
         }),
       ],
+      schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
     store = TestBed.inject<Store<State>>(Store) as MockStore<State>;
 
@@ -112,6 +115,11 @@ describe('Npmi Annotations List Row', () => {
   });
 
   it('renders annotation', () => {
+    store.overrideSelector(getRunColorMap, {
+      run_1: '#000',
+      run_2: '#AAA',
+      run_3: '#FFF',
+    });
     const fixture = createComponentInstance();
     fixture.detectChanges();
 
@@ -164,6 +172,11 @@ describe('Npmi Annotations List Row', () => {
 
   it('renders selected annotation', () => {
     store.overrideSelector(getSelectedAnnotations, ['annotation_1']);
+    store.overrideSelector(getRunColorMap, {
+      run_1: '#000',
+      run_2: '#AAA',
+      run_3: '#FFF',
+    });
     const fixture = createComponentInstance();
     fixture.detectChanges();
 
@@ -174,6 +187,11 @@ describe('Npmi Annotations List Row', () => {
 
   it('renders flagged annotation', () => {
     store.overrideSelector(getFlaggedAnnotations, ['annotation_1']);
+    store.overrideSelector(getRunColorMap, {
+      run_1: '#000',
+      run_2: '#AAA',
+      run_3: '#FFF',
+    });
     const fixture = createComponentInstance();
     fixture.detectChanges();
 
@@ -188,6 +206,11 @@ describe('Npmi Annotations List Row', () => {
 
   it('renders hidden annotation', () => {
     store.overrideSelector(getHiddenAnnotations, ['annotation_1']);
+    store.overrideSelector(getRunColorMap, {
+      run_1: '#000',
+      run_2: '#AAA',
+      run_3: '#FFF',
+    });
     const fixture = createComponentInstance();
     fixture.detectChanges();
 
@@ -200,6 +223,11 @@ describe('Npmi Annotations List Row', () => {
 
   it('renders annotation that is both flagged and hidden', () => {
     store.overrideSelector(getHiddenAnnotations, ['annotation_1']);
+    store.overrideSelector(getRunColorMap, {
+      run_1: '#000',
+      run_2: '#AAA',
+      run_3: '#FFF',
+    });
     store.overrideSelector(getFlaggedAnnotations, ['annotation_1']);
     const fixture = createComponentInstance();
     fixture.detectChanges();
@@ -221,6 +249,11 @@ describe('Npmi Annotations List Row', () => {
 
   it('does not render the counts when not active', () => {
     store.overrideSelector(getShowCounts, false);
+    store.overrideSelector(getRunColorMap, {
+      run_1: '#000',
+      run_2: '#AAA',
+      run_3: '#FFF',
+    });
     const fixture = createComponentInstance();
     fixture.detectChanges();
 

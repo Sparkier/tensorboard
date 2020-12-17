@@ -35,7 +35,7 @@ tf_ts_library(
     name = "expect_angular_cdk_clipboard",
     srcs = [],
     deps = [
-        "@npm//@angular/material",
+        "@npm//@angular/cdk",
     ],
 )
 
@@ -178,6 +178,15 @@ tf_ts_library(
 # This is a dummy rule used as a @angular/material/slider dependency.
 tf_ts_library(
     name = "expect_angular_material_slider",
+    srcs = [],
+    deps = [
+        "@npm//@angular/material",
+    ],
+)
+
+# This is a dummy rule used as a @angular/material/snackbar dependency.
+tf_ts_library(
+    name = "expect_angular_material_snackbar",
     srcs = [],
     deps = [
         "@npm//@angular/material",

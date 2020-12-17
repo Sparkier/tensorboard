@@ -116,6 +116,7 @@ class TensorBoardUploader(object):
         self._verbosity = 1 if verbosity is None else verbosity
         self._one_shot = False if one_shot is None else one_shot
         self._request_sender = None
+        self._experiment_id = None
         if logdir_poll_rate_limiter is None:
             self._logdir_poll_rate_limiter = util.RateLimiter(
                 _MIN_LOGDIR_POLL_INTERVAL_SECS
@@ -156,6 +157,22 @@ class TensorBoardUploader(object):
         self._logdir_loader = logdir_loader.LogdirLoader(
             self._logdir, directory_loader_factory
         )
+        self._tracker = upload_tracker.UploadTracker(
+            verbosity=self._verbosity, one_shot=self._one_shot
+        )
+
+    def has_data(self) -> bool:
+        """Returns this object's upload tracker."""
+        return self._tracker.has_data()
+
+    @property
+    def experiment_id(self) -> str:
+        """Returns the experiment_id associated with this uploader.
+
+        May be none if no experiment is set, for instance, if
+        `create_experiment` has not been called.
+        """
+        return self._experiment_id
 
     def create_experiment(self):
         """Creates an Experiment for this upload session and returns the ID."""
@@ -165,9 +182,6 @@ class TensorBoardUploader(object):
         )
         response = grpc_util.call_with_retries(
             self._api.CreateExperiment, request
-        )
-        self._tracker = upload_tracker.UploadTracker(
-            verbosity=self._verbosity, one_shot=self._one_shot
         )
         self._request_sender = _BatchedRequestSender(
             response.experiment_id,
@@ -179,10 +193,15 @@ class TensorBoardUploader(object):
             blob_rpc_rate_limiter=self._blob_rpc_rate_limiter,
             tracker=self._tracker,
         )
+        self._experiment_id = response.experiment_id
         return response.experiment_id
 
     def start_uploading(self):
-        """Blocks forever to continuously upload data from the logdir.
+        """Uploads data from the logdir.
+
+        This will continuously scan the logdir, uploading as data is added
+        unless the uploader was built with the _one_shot option, in which
+        case it will terminate after the first scan.
 
         Raises:
           RuntimeError: If `create_experiment` has not yet been called.
@@ -198,11 +217,6 @@ class TensorBoardUploader(object):
             self._upload_once()
             if self._one_shot:
                 break
-        if self._one_shot and not self._tracker.has_data():
-            logger.warning(
-                "One-shot mode was used on a logdir (%s) "
-                "without any uploadable data" % self._logdir
-            )
 
     def _upload_once(self):
         """Runs one upload cycle, sending zero or more RPCs."""
@@ -470,7 +484,12 @@ class _ScalarBatchedRequestSender(object):
     """
 
     def __init__(
-        self, experiment_id, api, rpc_rate_limiter, max_request_size, tracker,
+        self,
+        experiment_id,
+        api,
+        rpc_rate_limiter,
+        max_request_size,
+        tracker,
     ):
         if experiment_id is None:
             raise ValueError("experiment_id cannot be None")
@@ -687,7 +706,7 @@ class _TensorBatchedRequestSender(object):
         if tag_proto is None:
             tag_proto = self._create_tag(run_proto, value.tag, metadata)
             self._tags[(run_name, value.tag)] = tag_proto
-        self._create_point(tag_proto, event, value)
+        self._create_point(tag_proto, event, value, run_name)
 
     def flush(self):
         """Sends the active request after removing empty runs and tags.
@@ -755,13 +774,14 @@ class _TensorBatchedRequestSender(object):
         self._byte_budget_manager.add_tag(tag_proto)
         return tag_proto
 
-    def _create_point(self, tag_proto, event, value):
+    def _create_point(self, tag_proto, event, value, run_name):
         """Adds a tensor point to the given tag, if there's space.
 
         Args:
           tag_proto: `WriteTensorRequest.Tag` proto to which to add a point.
           event: Enclosing `Event` proto with the step and wall time data.
           value: Tensor `Summary.Value` proto with the actual tensor data.
+          run_name: Name of the wrong, only used for error reporting.
 
         Raises:
           _OutOfSpaceError: If adding the point would exceed the remaining
@@ -776,8 +796,11 @@ class _TensorBatchedRequestSender(object):
         self._tensor_bytes += point.value.ByteSize()
         if point.value.ByteSize() > self._max_tensor_point_size:
             logger.warning(
-                "Tensor too large; skipping. "
+                "Tensor (run:%s, tag:%s, step: %d) too large; skipping. "
                 "Size %d exceeds limit of %d bytes.",
+                run_name,
+                tag_proto.name,
+                event.step,
                 point.value.ByteSize(),
                 self._max_tensor_point_size,
             )
@@ -813,18 +836,18 @@ class _TensorBatchedRequestSender(object):
 class _ByteBudgetManager(object):
     """Helper class for managing the request byte budget for certain RPCs.
 
-  This should be used for RPCs that organize data by Runs, Tags, and Points,
-  specifically WriteScalar and WriteTensor.
+    This should be used for RPCs that organize data by Runs, Tags, and Points,
+    specifically WriteScalar and WriteTensor.
 
-  Any call to add_run(), add_tag(), or add_point() may raise an
-  _OutOfSpaceError, which is non-fatal. It signals to the caller that they
-  should flush the current request and begin a new one.
+    Any call to add_run(), add_tag(), or add_point() may raise an
+    _OutOfSpaceError, which is non-fatal. It signals to the caller that they
+    should flush the current request and begin a new one.
 
-  For more information on the protocol buffer encoding and how byte cost
-  can be calculated, visit:
+    For more information on the protocol buffer encoding and how byte cost
+    can be calculated, visit:
 
-  https://developers.google.com/protocol-buffers/docs/encoding
-  """
+    https://developers.google.com/protocol-buffers/docs/encoding
+    """
 
     def __init__(self, max_bytes):
         # The remaining number of bytes that we may yet add to the request.
@@ -834,13 +857,13 @@ class _ByteBudgetManager(object):
     def reset(self, base_request):
         """Resets the byte budget and calculates the cost of the base request.
 
-      Args:
-        base_request: Base request.
+        Args:
+          base_request: Base request.
 
-      Raises:
-        _OutOfSpaceError: If the size of the request exceeds the entire
-          request byte budget.
-      """
+        Raises:
+          _OutOfSpaceError: If the size of the request exceeds the entire
+            request byte budget.
+        """
         self._byte_budget = self._max_bytes
         self._byte_budget -= base_request.ByteSize()
         if self._byte_budget < 0:
@@ -849,13 +872,13 @@ class _ByteBudgetManager(object):
     def add_run(self, run_proto):
         """Integrates the cost of a run proto into the byte budget.
 
-      Args:
-        run_proto: The proto representing a run.
+        Args:
+          run_proto: The proto representing a run.
 
-      Raises:
-        _OutOfSpaceError: If adding the run would exceed the remaining request
-          budget.
-      """
+        Raises:
+          _OutOfSpaceError: If adding the run would exceed the remaining request
+            budget.
+        """
         cost = (
             # The size of the run proto without any tag fields set.
             run_proto.ByteSize()
@@ -875,13 +898,13 @@ class _ByteBudgetManager(object):
     def add_tag(self, tag_proto):
         """Integrates the cost of a tag proto into the byte budget.
 
-      Args:
-        tag_proto: The proto representing a tag.
+        Args:
+          tag_proto: The proto representing a tag.
 
-      Raises:
-        _OutOfSpaceError: If adding the tag would exceed the remaining request
-         budget.
-      """
+        Raises:
+          _OutOfSpaceError: If adding the tag would exceed the remaining request
+           budget.
+        """
         cost = (
             # The size of the tag proto without any tag fields set.
             tag_proto.ByteSize()
@@ -901,13 +924,13 @@ class _ByteBudgetManager(object):
     def add_point(self, point_proto):
         """Integrates the cost of a point proto into the byte budget.
 
-      Args:
-        point_proto: The proto representing a point.
+        Args:
+          point_proto: The proto representing a point.
 
-      Raises:
-        _OutOfSpaceError: If adding the point would exceed the remaining request
-         budget.
-      """
+        Raises:
+          _OutOfSpaceError: If adding the point would exceed the remaining request
+           budget.
+        """
         submessage_cost = point_proto.ByteSize()
         cost = (
             # The size of the point proto.
@@ -966,7 +989,11 @@ class _BlobRequestSender(object):
         self._metadata = None
 
     def add_event(
-        self, run_name, event, value, metadata,
+        self,
+        run_name,
+        event,
+        value,
+        metadata,
     ):
         """Attempts to add the given event to the current request.
 
@@ -1000,8 +1027,7 @@ class _BlobRequestSender(object):
             self._new_request()
 
     def flush(self):
-        """Sends the current blob sequence fully, and clears it to make way for the next.
-        """
+        """Sends the current blob sequence fully, and clears it to make way for the next."""
         if self._value:
             blob_sequence_id = self._get_or_create_blob_sequence()
             logger.info(
@@ -1198,7 +1224,8 @@ def _filtered_graph_bytes(graph_bytes):
     # a combination of mysterious circumstances.
     except (message.DecodeError, RuntimeWarning):
         logger.warning(
-            "Could not parse GraphDef of size %d. Skipping.", len(graph_bytes),
+            "Could not parse GraphDef of size %d. Skipping.",
+            len(graph_bytes),
         )
         return None
     # Use the default filter parameters:

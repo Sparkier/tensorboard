@@ -13,20 +13,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-import {
-  FeatureFlagState,
-  FEAUTURE_FLAG_FEATURE_KEY,
-} from './feature_flag_types';
+import {buildFeatureFlag} from '../testing';
+import {FeatureFlagState, FEATURE_FLAG_FEATURE_KEY} from './feature_flag_types';
 
-export function buildFeatureFlagState(override: Partial<FeatureFlagState>) {
+export function buildFeatureFlagState(
+  override: Partial<FeatureFlagState> = {}
+) {
+  const {features: featuresOverride, ...restOverride} = override;
   return {
-    enabledExperimentalPlugins: ['foo'],
-    ...override,
+    isFeatureFlagsLoaded: false,
+    ...restOverride,
+    features: buildFeatureFlag(featuresOverride),
   };
 }
 
 export function buildState(featureFlagState: FeatureFlagState) {
   return {
-    [FEAUTURE_FLAG_FEATURE_KEY]: featureFlagState,
+    [FEATURE_FLAG_FEATURE_KEY]: featureFlagState,
   };
 }

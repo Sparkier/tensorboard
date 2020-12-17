@@ -12,6 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
+import {NO_ERRORS_SCHEMA} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 
@@ -19,6 +20,7 @@ import {Store} from '@ngrx/store';
 import {provideMockStore, MockStore} from '@ngrx/store/testing';
 
 import {State} from '../../../../app_state';
+import * as selectors from '../../../../selectors';
 import {getAnnotationsExpanded} from '../../store';
 import {appStateFromNpmiState, createNpmiState} from '../../testing';
 import {createState, createCoreState} from '../../../../core/testing';
@@ -48,8 +50,10 @@ describe('Npmi Annotations List Container', () => {
           },
         }),
       ],
+      schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
     store = TestBed.inject<Store<State>>(Store) as MockStore<State>;
+    store.overrideSelector(selectors.getCurrentRouteRunSelection, new Map());
   });
 
   it('renders expanded annotations list', () => {

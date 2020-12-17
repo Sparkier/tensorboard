@@ -15,13 +15,14 @@ limitations under the License.
 /**
  * Unit tests for the NPMI Container.
  */
+import {NO_ERRORS_SCHEMA} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 
 import {Store} from '@ngrx/store';
 import {State} from '../../app_state';
-import {getRunSelection} from './../../core/store/core_selectors';
 import {getViewActive} from './store';
+import {getCurrentRouteRunSelection} from './../../selectors';
 import {provideMockStore, MockStore} from '@ngrx/store/testing';
 import {appStateFromNpmiState, createNpmiState} from './testing';
 import {createState, createCoreState} from '../../core/testing';
@@ -52,12 +53,13 @@ describe('Npmi Container', () => {
         }),
         NpmiContainer,
       ],
+      schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
     store = TestBed.inject<Store<State>>(Store) as MockStore<State>;
   });
 
-  it('renders default component initially with inactive component', () => {
-    store.overrideSelector(getRunSelection, new Map());
+  it('renders npmi component initially with inactive component', () => {
+    store.overrideSelector(getCurrentRouteRunSelection, new Map());
     const fixture = TestBed.createComponent(NpmiContainer);
     fixture.detectChanges();
 
@@ -69,8 +71,11 @@ describe('Npmi Container', () => {
     expect(embeddingsElement).toBeNull();
   });
 
-  it('renders default component', () => {
-    store.overrideSelector(getRunSelection, new Map([['run_1', true]]));
+  it('renders npmi component', () => {
+    store.overrideSelector(
+      getCurrentRouteRunSelection,
+      new Map([['run_1', true]])
+    );
     const fixture = TestBed.createComponent(NpmiContainer);
     fixture.detectChanges();
 
@@ -83,7 +88,10 @@ describe('Npmi Container', () => {
   });
 
   it('renders embeddings component', () => {
-    store.overrideSelector(getRunSelection, new Map([['run_1', true]]));
+    store.overrideSelector(
+      getCurrentRouteRunSelection,
+      new Map([['run_1', true]])
+    );
     store.overrideSelector(getViewActive, 'embeddings');
     const fixture = TestBed.createComponent(NpmiContainer);
     fixture.detectChanges();

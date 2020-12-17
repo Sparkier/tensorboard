@@ -1,5 +1,4 @@
-import {AnnotationDataListing} from '../store/npmi_types';
-import {EmbeddingDataSet} from './umap';
+import {AnnotationDataListing, EmbeddingDataSet} from '../store/npmi_types';
 
 export function filterUmapIndices(
   filteredAnnotations: AnnotationDataListing,

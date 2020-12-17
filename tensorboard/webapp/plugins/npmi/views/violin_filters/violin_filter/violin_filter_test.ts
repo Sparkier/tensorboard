@@ -15,6 +15,7 @@ limitations under the License.
 /**
  * Unit tests for a violin filter.
  */
+import {NO_ERRORS_SCHEMA} from '@angular/core';
 import {TestBed, ComponentFixture} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 
@@ -28,7 +29,8 @@ import {appStateFromNpmiState, createNpmiState} from '../../../testing';
 import {createState, createCoreState} from '../../../../../core/testing';
 import * as npmiActions from '../../../actions';
 import {getAnnotationData} from '../../../store';
-import {getRunSelection} from '../../../../../core/store/core_selectors';
+import {getCurrentRouteRunSelection} from '../../../../../selectors';
+import * as selectors from '../../../../../selectors';
 
 /** @typehack */ import * as _typeHackStore from '@ngrx/store';
 
@@ -56,6 +58,7 @@ describe('Npmi Violin Filter Container', () => {
           },
         }),
       ],
+      schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
     store = TestBed.inject<Store<State>>(Store) as MockStore<State>;
 
@@ -65,7 +68,7 @@ describe('Npmi Violin Filter Container', () => {
     });
 
     store.overrideSelector(
-      getRunSelection,
+      getCurrentRouteRunSelection,
       new Map([
         ['run_1', true],
         ['run_2', false],
@@ -119,6 +122,11 @@ describe('Npmi Violin Filter Container', () => {
           countValue: 53,
         },
       ],
+    });
+    store.overrideSelector(selectors.getRunColorMap, {
+      run_1: '#000',
+      run_2: '#AAA',
+      run_3: '#FFF',
     });
     fixture = TestBed.createComponent(ViolinFilterContainer);
     fixture.componentInstance.metricName = 'nPMI@test';

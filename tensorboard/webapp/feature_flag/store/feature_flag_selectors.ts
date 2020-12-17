@@ -17,30 +17,44 @@ import {createSelector, createFeatureSelector} from '@ngrx/store';
 
 import {
   FeatureFlagState,
-  FEAUTURE_FLAG_FEATURE_KEY,
+  FEATURE_FLAG_FEATURE_KEY,
   State,
 } from './feature_flag_types';
-import {FeatureValue} from '../types';
 
 /** @typehack */ import * as _typeHackNgrxStore from '@ngrx/store';
 
 const selectFeatureFlagState = createFeatureSelector<State, FeatureFlagState>(
-  FEAUTURE_FLAG_FEATURE_KEY
+  FEATURE_FLAG_FEATURE_KEY
 );
 
-export const getFeature = createSelector(
+export const getIsFeatureFlagsLoaded = createSelector(
   selectFeatureFlagState,
-  (
-    state: FeatureFlagState,
-    featureId: keyof FeatureFlagState
-  ): FeatureValue | null => {
-    return state[featureId] || null;
+  (state) => {
+    return state.isFeatureFlagsLoaded;
+  }
+);
+
+export const getFeatureFlags = createSelector(
+  selectFeatureFlagState,
+  (state) => {
+    return state.features;
   }
 );
 
 export const getEnabledExperimentalPlugins = createSelector(
   selectFeatureFlagState,
   (state) => {
-    return state.enabledExperimentalPlugins as string[];
+    return state.features.enabledExperimentalPlugins;
+  }
+);
+
+export const getIsInColab = createSelector(selectFeatureFlagState, (state) => {
+  return state.features.inColab;
+});
+
+export const getIsGpuChartEnabled = createSelector(
+  selectFeatureFlagState,
+  (state: FeatureFlagState): boolean => {
+    return state.features.enableGpuChart;
   }
 );

@@ -35,7 +35,7 @@ import {
   getViewActive,
   getProjection,
 } from '../../store';
-import {getRunSelection} from '../../../../core/store/core_selectors';
+import {getCurrentRouteRunSelection} from '../../../../selectors';
 import {
   filterAnnotations,
   removeHiddenAnnotations,
@@ -69,14 +69,6 @@ export class AnnotationsListContainer {
   readonly annotationsExpanded$ = this.store.pipe(
     select(getAnnotationsExpanded)
   );
-  readonly activeRuns$ = this.store.pipe(select(getRunSelection)).pipe(
-    map((runSelection) => {
-      if (!runSelection) return [];
-      return Array.from(runSelection.entries())
-        .filter((run) => run[1])
-        .map((run) => run[0]);
-    })
-  );
   readonly embeddingData$ = this.store.pipe(select(getEmbeddingDataSet));
   readonly embeddingPoints$ = this.embeddingData$.pipe(
     map((embeddingData) => {
@@ -86,6 +78,16 @@ export class AnnotationsListContainer {
       return embeddingData.points;
     })
   );
+  readonly activeRuns$ = this.store
+    .pipe(select(getCurrentRouteRunSelection))
+    .pipe(
+      map((runSelection) => {
+        if (!runSelection) return [];
+        return Array.from(runSelection.entries())
+          .filter((run) => run[1])
+          .map((run) => run[0]);
+      })
+    );
   readonly numActiveRuns$ = this.activeRuns$.pipe(map((runs) => runs.length));
   readonly activeMetrics$ = combineLatest([
     this.store.select(getRunToMetrics),
@@ -183,10 +185,10 @@ export class AnnotationsListContainer {
   );
   readonly sortedAnnotations$ = combineLatest([
     this.filteredAnnotations$,
-    this.embeddingData$,
     this.store.pipe(select(getAnnotationSort)),
+    this.embeddingData$,
   ]).pipe(
-    map(([annotations, embeddingData, sort]) => {
+    map(([annotations, sort, embeddingData]) => {
       return sortAnnotations(annotations, sort, embeddingData);
     })
   );

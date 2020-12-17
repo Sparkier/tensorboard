@@ -16,5 +16,6 @@ require.config({
   paths: {
     lodash: '/base/npm/node_modules/lodash/lodash',
     d3: '/base/npm/node_modules/d3/dist/d3',
+    three: '/base/npm/node_modules/three/build/three',
   },
 });

@@ -22,7 +22,7 @@ import {MatIconModule} from '@angular/material/icon';
 
 import {EmbeddingsComponent} from './embeddings_component';
 import {EmbeddingsContainer} from './embeddings_container';
-import {RunsModule} from '../../../../runs_legacy/runs_module';
+import {RunsSelectorModule} from '../../../../runs/views/runs_selector/runs_selector_module';
 import {DataSelectionModule} from './../data_selection/data_selection_module';
 import {AnnotationsListModule} from '../annotations_list/annotations_list_module';
 import {SelectedAnnotationsModule} from './../selected_annotations/selected_annotations_module';
@@ -35,7 +35,7 @@ import {EmbeddingProjectionModule} from './../embedding_projection/embedding_pro
     FormsModule,
     MatCheckboxModule,
     MatIconModule,
-    RunsModule,
+    RunsSelectorModule,
     DataSelectionModule,
     MatButtonModule,
     AnnotationsListModule,

@@ -29,14 +29,13 @@ import {
   getShowHiddenAnnotations,
   getMetricArithmetic,
   getMetricFilters,
-  getAnnotationsRegex,
   getRunToMetrics,
   getEmbeddingFilter,
   getProjection,
   getSelectedAnnotations,
 } from '../../../store';
 import {EmbeddingDataSet} from '../../../store/npmi_types';
-import {getRunSelection} from '../../../../../core/store/core_selectors';
+import {getCurrentRouteRunSelection} from '../../../../../selectors';
 import {
   filterAnnotations,
   removeHiddenAnnotations,
@@ -81,14 +80,16 @@ export class ProjectionGraphContainer {
   readonly embeddingStatusMessage$ = this.store.pipe(
     select(getEmbeddingStatusMessage)
   );
-  readonly activeRuns$ = this.store.pipe(select(getRunSelection)).pipe(
-    map((runSelection) => {
-      if (!runSelection) return [];
-      return Array.from(runSelection.entries())
-        .filter((run) => run[1])
-        .map((run) => run[0]);
-    })
-  );
+  readonly activeRuns$ = this.store
+    .pipe(select(getCurrentRouteRunSelection))
+    .pipe(
+      map((runSelection) => {
+        if (!runSelection) return [];
+        return Array.from(runSelection.entries())
+          .filter((run) => run[1])
+          .map((run) => run[0]);
+      })
+    );
   readonly activeMetrics$ = combineLatest([
     this.store.select(getRunToMetrics),
     this.activeRuns$,

@@ -20,7 +20,7 @@ import {By} from '@angular/platform-browser';
 import {FormsModule} from '@angular/forms';
 import {CommonModule} from '@angular/common';
 import {OverlayContainer} from '@angular/cdk/overlay';
-import {DebugElement, getDebugNode} from '@angular/core';
+import {DebugElement, getDebugNode, NO_ERRORS_SCHEMA} from '@angular/core';
 
 import {MatAutocompleteModule} from '@angular/material/autocomplete';
 import {MatInputModule} from '@angular/material/input';
@@ -29,7 +29,7 @@ import {Action, Store} from '@ngrx/store';
 import {provideMockStore, MockStore} from '@ngrx/store/testing';
 
 import {State} from '../../../../../app_state';
-import {getRunSelection} from '../../../../../core/store/core_selectors';
+import {getCurrentRouteRunSelection} from '../../../../../selectors';
 import {
   getMetricFilters,
   getMetricsRegex,
@@ -65,6 +65,7 @@ describe('Npmi Metric Search Container', () => {
           initialState: appStateFromNpmiState(createNpmiState()),
         }),
       ],
+      schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
 
     overlayContainer = TestBed.inject(OverlayContainer);
@@ -76,7 +77,7 @@ describe('Npmi Metric Search Container', () => {
     });
 
     store.overrideSelector(
-      getRunSelection,
+      getCurrentRouteRunSelection,
       new Map([
         ['run1', true],
         ['run2', true],

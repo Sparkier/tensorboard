@@ -1,5 +1,4 @@
-load("@npm_angular_bazel//:index.bzl", "ng_module")
-load("//tensorboard/defs:defs.bzl", "tf_sass_binary", "tf_ts_library")
+load("//tensorboard/defs:defs.bzl", "tf_ng_module", "tf_sass_binary", "tf_ts_library")
 
 package(default_visibility = ["//tensorboard:internal"])
 
@@ -48,7 +47,7 @@ tf_sass_binary(
     ],
 )
 
-ng_module(
+tf_ng_module(
     name = "main_view",
     srcs = [
         "card_grid_component.ts",
@@ -79,6 +78,7 @@ ng_module(
     deps = [
         "//tensorboard/webapp:app_state",
         "//tensorboard/webapp:selectors",
+        "//tensorboard/webapp/angular:expect_angular_cdk_scrolling",
         "//tensorboard/webapp/angular:expect_angular_material_autocomplete",
         "//tensorboard/webapp/angular:expect_angular_material_button",
         "//tensorboard/webapp/angular:expect_angular_material_icon",
@@ -95,6 +95,7 @@ ng_module(
         "//tensorboard/webapp/types:ui",
         "//tensorboard/webapp/util:string",
         "//tensorboard/webapp/util:types",
+        "@npm//@angular/common",
         "@npm//@angular/core",
         "@npm//@ngrx/store",
         "@npm//rxjs",

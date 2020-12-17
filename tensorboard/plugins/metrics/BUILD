@@ -5,8 +5,6 @@ package(default_visibility = ["//tensorboard:internal"])
 
 licenses(["notice"])
 
-exports_files(["LICENSE"])
-
 py_library(
     name = "metrics_plugin",
     srcs = [
@@ -51,7 +49,6 @@ py_test(
         "//tensorboard/data:provider",
         "//tensorboard/plugins:base_plugin",
         "//tensorboard/plugins/image:metadata",
-        "//tensorboard/summary:tf_summary",
         "//tensorboard/util:test_util",
         "@org_pocoo_werkzeug",
     ],

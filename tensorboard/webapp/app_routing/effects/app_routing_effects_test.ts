@@ -535,6 +535,7 @@ describe('app_routing_effects', () => {
   describe('changeBrowserUrl$', () => {
     let replaceStateSpy: jasmine.Spy;
     let pushStateSpy: jasmine.Spy;
+    let getHashSpy: jasmine.Spy;
     let getPathSpy: jasmine.Spy;
     let getSearchSpy: jasmine.Spy;
 
@@ -543,6 +544,7 @@ describe('app_routing_effects', () => {
 
       replaceStateSpy = spyOn(location, 'replaceState');
       pushStateSpy = spyOn(location, 'pushState');
+      getHashSpy = spyOn(location, 'getHash');
       getPathSpy = spyOn(location, 'getPath');
       getSearchSpy = spyOn(location, 'getSearch');
     });
@@ -558,6 +560,7 @@ describe('app_routing_effects', () => {
       });
       store.overrideSelector(getActiveRoute, activeRoute);
       store.refreshState();
+      getHashSpy.and.returnValue('');
       getPathSpy.and.returnValue('/experiments');
       getSearchSpy.and.returnValue([]);
 
@@ -583,6 +586,7 @@ describe('app_routing_effects', () => {
       });
       store.overrideSelector(getActiveRoute, activeRoute);
       store.refreshState();
+      getHashSpy.and.returnValue('');
       getPathSpy.and.returnValue('meow');
       getSearchSpy.and.returnValue([]);
 
@@ -607,6 +611,7 @@ describe('app_routing_effects', () => {
       });
       store.overrideSelector(getActiveRoute, activeRoute);
       store.refreshState();
+      getHashSpy.and.returnValue('');
       getPathSpy.and.returnValue('meow');
       getSearchSpy.and.returnValue([]);
 
@@ -619,6 +624,104 @@ describe('app_routing_effects', () => {
 
       expect(pushStateSpy).not.toHaveBeenCalled();
       expect(replaceStateSpy).toHaveBeenCalledWith('/experiments');
+    });
+
+    it('preserves hash upon replace for initial navigation', () => {
+      const activeRoute = buildRoute({
+        routeKind: RouteKind.EXPERIMENTS,
+        pathname: '/experiments',
+        queryParams: [],
+        navigationOptions: {
+          replaceState: true,
+        },
+      });
+      store.overrideSelector(getActiveRoute, activeRoute);
+      store.refreshState();
+      getHashSpy.and.returnValue('#foo');
+      getPathSpy.and.returnValue('meow');
+      getSearchSpy.and.returnValue([]);
+
+      action.next(
+        actions.navigated({
+          before: null,
+          after: activeRoute,
+        })
+      );
+
+      expect(replaceStateSpy).toHaveBeenCalledWith('/experiments#foo');
+    });
+
+    // This hash preservation spec may become obsolete. If we enable app_routing
+    // to properly set the URL hash, and all TB embedders use app_routing, then
+    // this spec can be removed.
+    it('preserves hash upon navigations to the same route id', () => {
+      const activeRoute = buildRoute({
+        routeKind: RouteKind.EXPERIMENT,
+        pathname: '/experiment',
+        queryParams: [],
+        navigationOptions: {
+          replaceState: true,
+        },
+      });
+      const nextActiveRoute = buildRoute({
+        routeKind: RouteKind.EXPERIMENT,
+        pathname: '/experiment',
+        queryParams: [{key: 'q', value: 'new_value'}],
+        navigationOptions: {
+          replaceState: true,
+        },
+      });
+      store.overrideSelector(getActiveRoute, nextActiveRoute);
+      store.refreshState();
+      getHashSpy.and.returnValue('#foo');
+      getPathSpy.and.returnValue('meow');
+      getSearchSpy.and.returnValue([]);
+
+      action.next(
+        actions.navigated({
+          before: activeRoute,
+          after: nextActiveRoute,
+        })
+      );
+
+      expect(replaceStateSpy).toHaveBeenCalledWith(
+        '/experiment?q=new_value#foo'
+      );
+    });
+
+    it('discards hash upon navigations to a new route id', () => {
+      const activeRoute = buildRoute({
+        routeKind: RouteKind.EXPERIMENTS,
+        pathname: '/experiments',
+        queryParams: [],
+        navigationOptions: {
+          replaceState: true,
+        },
+      });
+      const nextActiveRoute = buildRoute({
+        routeKind: RouteKind.EXPERIMENT,
+        pathname: '/experiment',
+        // Changing route params produces a new route id.
+        params: {experimentId: '123'},
+        queryParams: [],
+        navigationOptions: {
+          replaceState: true,
+        },
+      });
+      store.overrideSelector(getActiveRoute, nextActiveRoute);
+      store.refreshState();
+      getHashSpy.and.returnValue('#foo');
+      getPathSpy.and.returnValue('meow');
+      getSearchSpy.and.returnValue([]);
+
+      action.next(
+        actions.navigated({
+          before: activeRoute,
+          after: nextActiveRoute,
+        })
+      );
+
+      expect(replaceStateSpy).toHaveBeenCalledWith('/experiment');
     });
   });
 });

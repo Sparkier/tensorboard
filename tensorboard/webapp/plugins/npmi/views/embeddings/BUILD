@@ -1,5 +1,4 @@
-load("@npm_angular_bazel//:index.bzl", "ng_module")
-load("//tensorboard/defs:defs.bzl", "tf_sass_binary", "tf_ts_library")
+load("//tensorboard/defs:defs.bzl", "tf_ng_module", "tf_sass_binary", "tf_ts_library")
 
 package(default_visibility = ["//tensorboard:internal"])
 
@@ -10,7 +9,7 @@ tf_sass_binary(
     src = "embeddings_component.scss",
 )
 
-ng_module(
+tf_ng_module(
     name = "embeddings",
     srcs = [
         "embeddings_component.ts",
@@ -23,6 +22,7 @@ ng_module(
     ],
     deps = [
         "//tensorboard/webapp:app_state",
+        "//tensorboard/webapp:selectors",
         "//tensorboard/webapp/angular:expect_angular_material_button",
         "//tensorboard/webapp/angular:expect_angular_material_checkbox",
         "//tensorboard/webapp/angular:expect_angular_material_icon",
@@ -34,7 +34,8 @@ ng_module(
         "//tensorboard/webapp/plugins/npmi/views/data_selection",
         "//tensorboard/webapp/plugins/npmi/views/embedding_projection",
         "//tensorboard/webapp/plugins/npmi/views/selected_annotations",
-        "//tensorboard/webapp/runs_legacy",
+        "//tensorboard/webapp/runs/views/runs_selector",
+        "@npm//@angular/common",
         "@npm//@angular/core",
         "@npm//@angular/forms",
         "@npm//@ngrx/store",
@@ -51,6 +52,7 @@ tf_ts_library(
     deps = [
         ":embeddings",
         "//tensorboard/webapp:app_state",
+        "//tensorboard/webapp:selectors",
         "//tensorboard/webapp/angular:expect_angular_core_testing",
         "//tensorboard/webapp/angular:expect_ngrx_store_testing",
         "//tensorboard/webapp/core/store",
@@ -58,7 +60,8 @@ tf_ts_library(
         "//tensorboard/webapp/plugins/npmi/actions",
         "//tensorboard/webapp/plugins/npmi/store",
         "//tensorboard/webapp/plugins/npmi/testing",
-        "//tensorboard/webapp/runs_legacy",
+        "//tensorboard/webapp/runs/views/runs_selector",
+        "@npm//@angular/common",
         "@npm//@angular/core",
         "@npm//@angular/platform-browser",
         "@npm//@ngrx/store",

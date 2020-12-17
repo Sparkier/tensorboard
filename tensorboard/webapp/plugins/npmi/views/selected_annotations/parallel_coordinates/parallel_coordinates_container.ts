@@ -16,7 +16,7 @@ import {Component, ChangeDetectionStrategy} from '@angular/core';
 import {select, Store} from '@ngrx/store';
 import {State} from '../../../../../app_state';
 
-import {combineLatest} from 'rxjs';
+import {Observable, combineLatest} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 import {
@@ -26,10 +26,12 @@ import {
   getAnnotationData,
   getSidebarWidth,
 } from '../../../store';
-import {getRunSelection} from '../../../../../core/store/core_selectors';
+import {getCurrentRouteRunSelection} from '../../../../../selectors';
 import {metricIsNpmiAndNotDiff} from '../../../util/metric_type';
 import {convertToCoordinateData} from '../../../util/coordinate_data';
 import {stripMetricString} from '../../../util/metric_type';
+import * as selectors from '../../../../../selectors';
+import {RunColorScale} from '../../../../../types/ui';
 
 /** @typehack */ import * as _typeHackRxjs from 'rxjs';
 
@@ -40,19 +42,22 @@ import {stripMetricString} from '../../../util/metric_type';
       [activeMetrics]="activeMetrics$ | async"
       [coordinateData]="coordinateData$ | async"
       [sidebarWidth]="sidebarWidth$ | async"
+      [colorScale]="runColorScale$ | async"
     ></parallel-coordinates-component>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ParallelCoordinatesContainer {
-  readonly activeRuns$ = this.store.pipe(select(getRunSelection)).pipe(
-    map((runSelection) => {
-      if (!runSelection) return [];
-      return Array.from(runSelection.entries())
-        .filter((run) => run[1])
-        .map((run) => run[0]);
-    })
-  );
+  readonly activeRuns$ = this.store
+    .pipe(select(getCurrentRouteRunSelection))
+    .pipe(
+      map((runSelection) => {
+        if (!runSelection) return [];
+        return Array.from(runSelection.entries())
+          .filter((run) => run[1])
+          .map((run) => run[0]);
+      })
+    );
   readonly activeMetrics$ = combineLatest(
     this.store.select(getRunToMetrics),
     this.activeRuns$,
@@ -87,6 +92,18 @@ export class ParallelCoordinatesContainer {
     })
   );
   readonly sidebarWidth$ = this.store.select(getSidebarWidth);
+  readonly runColorScale$: Observable<RunColorScale> = this.store
+    .select(selectors.getRunColorMap)
+    .pipe(
+      map((colorMap) => {
+        return (runId: string) => {
+          if (!colorMap.hasOwnProperty(runId)) {
+            throw new Error(`[Color scale] unknown runId: ${runId}.`);
+          }
+          return colorMap[runId];
+        };
+      })
+    );
 
   constructor(private readonly store: Store<State>) {}
 }

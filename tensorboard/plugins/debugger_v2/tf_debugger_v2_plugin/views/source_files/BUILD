@@ -1,11 +1,10 @@
-load("@npm_angular_bazel//:index.bzl", "ng_module")
-load("//tensorboard/defs:defs.bzl", "tf_ts_library")
+load("//tensorboard/defs:defs.bzl", "tf_ng_module", "tf_ts_library")
 
 package(default_visibility = ["//tensorboard:internal"])
 
 licenses(["notice"])
 
-ng_module(
+tf_ng_module(
     name = "source_files",
     srcs = [
         "source_files_component.ts",
@@ -19,7 +18,7 @@ ng_module(
     deps = [
         "//tensorboard/plugins/debugger_v2/tf_debugger_v2_plugin/store",
         "//tensorboard/plugins/debugger_v2/tf_debugger_v2_plugin/store:types",
-        "//tensorboard/plugins/debugger_v2/tf_debugger_v2_plugin/views/source_code",
+        "//tensorboard/webapp/widgets/source_code",
         "@npm//@angular/common",
         "@npm//@angular/core",
         "@npm//@ngrx/store",
@@ -43,12 +42,12 @@ tf_ts_library(
         "//tensorboard/plugins/debugger_v2/tf_debugger_v2_plugin/views/execution_data",
         "//tensorboard/plugins/debugger_v2/tf_debugger_v2_plugin/views/graph_executions",
         "//tensorboard/plugins/debugger_v2/tf_debugger_v2_plugin/views/inactive",
-        "//tensorboard/plugins/debugger_v2/tf_debugger_v2_plugin/views/source_code:load_monaco",
-        "//tensorboard/plugins/debugger_v2/tf_debugger_v2_plugin/views/source_code:testing",
         "//tensorboard/plugins/debugger_v2/tf_debugger_v2_plugin/views/stack_trace",
         "//tensorboard/plugins/debugger_v2/tf_debugger_v2_plugin/views/timeline",
         "//tensorboard/webapp/angular:expect_angular_core_testing",
         "//tensorboard/webapp/angular:expect_ngrx_store_testing",
+        "//tensorboard/webapp/widgets/source_code:load_monaco",
+        "//tensorboard/webapp/widgets/source_code:testing",
         "@npm//@angular/common",
         "@npm//@angular/compiler",
         "@npm//@angular/core",

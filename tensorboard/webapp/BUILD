@@ -1,5 +1,4 @@
-load("@npm_angular_bazel//:index.bzl", "ng_module")
-load("//tensorboard/defs:defs.bzl", "tf_js_binary", "tf_ng_web_test_suite", "tf_sass_binary", "tf_sass_library", "tf_svg_bundle")
+load("//tensorboard/defs:defs.bzl", "tf_js_binary", "tf_ng_module", "tf_ng_web_test_suite", "tf_sass_binary", "tf_sass_library", "tf_svg_bundle")
 load("//tensorboard/defs:web.bzl", "tf_web_library")
 load("//tensorboard/defs:vulcanize.bzl", "tensorboard_html_binary")
 
@@ -7,20 +6,21 @@ package(default_visibility = ["//tensorboard:internal"])
 
 licenses(["notice"])
 
-ng_module(
+tf_ng_module(
     name = "oss_plugins_module",
     srcs = [
         "oss_plugins_module.ts",
     ],
     deps = [
         "//tensorboard/plugins/debugger_v2/tf_debugger_v2_plugin:debugger_v2",
+        "//tensorboard/webapp/metrics",
         "//tensorboard/webapp/plugins/npmi",
         "//tensorboard/webapp/plugins/text_v2",
         "@npm//@angular/core",
     ],
 )
 
-ng_module(
+tf_ng_module(
     name = "reducer_config",
     srcs = [
         "reducer_config.ts",
@@ -31,57 +31,91 @@ ng_module(
     ],
 )
 
-ng_module(
+tf_ng_module(
+    name = "store_module",
+    srcs = [
+        "store_module.ts",
+    ],
+    deps = [
+        ":reducer_config",
+        "@npm//@angular/core",
+        "@npm//@ngrx/effects",
+        "@npm//@ngrx/store",
+    ],
+)
+
+tf_ng_module(
     name = "selectors",
     srcs = [
         "selectors.ts",
     ],
     deps = [
+        "//tensorboard/webapp/alert/store",
         "//tensorboard/webapp/app_routing/store",
         "//tensorboard/webapp/experiments/store:selectors",
+        "//tensorboard/webapp/feature_flag/store",
         "//tensorboard/webapp/metrics/store",
         "//tensorboard/webapp/runs/store:selectors",
         "//tensorboard/webapp/util:ui_selectors",
     ],
 )
 
+tf_ng_module(
+    name = "mat_icon",
+    srcs = [
+        "mat_icon_module.ts",
+    ],
+    deps = [
+        "//tensorboard/webapp/angular:expect_angular_material_icon",
+        "@npm//@angular/core",
+        "@npm//@angular/platform-browser",
+    ],
+)
+
 # Angular module for the top-level app component together with all of its
 # injectable dependencies.  I.e., the entire Angular app.
-ng_module(
+tf_ng_module(
     name = "app",
     srcs = [
         "app_container.ts",
         "app_module.ts",
-        "mat_icon_module.ts",
     ],
     assets = [
         "app_container.css",
         "app_container.ng.html",
     ],
     deps = [
+        ":mat_icon",
         ":oss_plugins_module",
-        ":reducer_config",
-        "//tensorboard/webapp/angular:expect_angular_material_icon",
+        ":store_module",
+        "//tensorboard/webapp/alert",
+        "//tensorboard/webapp/alert/views:alert_snackbar",
         "//tensorboard/webapp/angular:expect_angular_platform_browser_animations",
+        "//tensorboard/webapp/app_routing",
+        "//tensorboard/webapp/app_routing:route_registry",
+        "//tensorboard/webapp/app_routing/views",
         "//tensorboard/webapp/core",
         "//tensorboard/webapp/core/actions",
         "//tensorboard/webapp/core/store",
         "//tensorboard/webapp/core/views:hash_storage",
         "//tensorboard/webapp/core/views:page_title",
+        "//tensorboard/webapp/experiments",
         "//tensorboard/webapp/feature_flag",
         "//tensorboard/webapp/header",
         "//tensorboard/webapp/plugins",
         "//tensorboard/webapp/reloader",
+        "//tensorboard/webapp/routes",
+        "//tensorboard/webapp/runs",
         "//tensorboard/webapp/runs_legacy",
         "//tensorboard/webapp/settings",
+        "//tensorboard/webapp/tb_wrapper",
         "@npm//@angular/core",
         "@npm//@angular/platform-browser",
-        "@npm//@ngrx/effects",
         "@npm//@ngrx/store",
     ],
 )
 
-ng_module(
+tf_ng_module(
     name = "app_state",
     srcs = [
         "app_state.ts",
@@ -101,7 +135,7 @@ ng_module(
 # TODO(stephanwlee): at the moment, there is no development build. Reinstate it.
 # Wrapper that prepares Angular app for deployment, dealing with browser
 # compatibility, Vulcanization, and configuration (e.g. prod vs. dev).
-ng_module(
+tf_ng_module(
     name = "ng_main",
     srcs = [
         "bootstrap.ts",
@@ -167,7 +201,7 @@ tf_web_library(
     deps = [
         ":tb_webapp",
         "//tensorboard/components/tf_imports:roboto",
-        "//tensorboard/plugins/debugger_v2/tf_debugger_v2_plugin/views/source_code/monaco:requirejs",
+        "//tensorboard/webapp/widgets/source_code/monaco:requirejs",
     ],
 )
 
@@ -185,6 +219,9 @@ tensorboard_html_binary(
 tf_ng_web_test_suite(
     name = "karma_test",
     deps = [
+        "//tensorboard/webapp/alert:test_lib",
+        "//tensorboard/webapp/alert/store:test_lib",
+        "//tensorboard/webapp/alert/views:views_test",
         "//tensorboard/webapp/app_routing:app_routing_test",
         "//tensorboard/webapp/app_routing:route_config_test",
         "//tensorboard/webapp/app_routing:testing",
@@ -241,6 +278,8 @@ tf_ng_web_test_suite(
         "//tensorboard/webapp/plugins/text_v2/effects:effects_test_lib",
         "//tensorboard/webapp/plugins/text_v2/store:store_test_lib",
         "//tensorboard/webapp/reloader:test_lib",
+        "//tensorboard/webapp/routes:routes_test_lib",
+        "//tensorboard/webapp/runs/data_source:runs_data_source_test",
         "//tensorboard/webapp/runs/effects:effects_test",
         "//tensorboard/webapp/runs/store:store_test",
         "//tensorboard/webapp/runs/store:testing",
@@ -250,12 +289,20 @@ tf_ng_web_test_suite(
         "//tensorboard/webapp/tbdev_upload:test_lib",
         "//tensorboard/webapp/util:util_tests",
         "//tensorboard/webapp/webapp_data_source:feature_flag_test_lib",
+        "//tensorboard/webapp/webapp_data_source:http_client_test",
         "//tensorboard/webapp/webapp_data_source:webapp_data_source_test_lib",
         "//tensorboard/webapp/widgets:resize_detector_test",
         "//tensorboard/webapp/widgets:resize_detector_testing",
         "//tensorboard/webapp/widgets/histogram:histogram_test",
         "//tensorboard/webapp/widgets/line_chart:line_chart_test",
+        "//tensorboard/webapp/widgets/line_chart_v2:line_chart_v2_tests",
+        "//tensorboard/webapp/widgets/line_chart_v2/lib:lib_tests",
+        "//tensorboard/webapp/widgets/line_chart_v2/lib/renderer:renderer_test",
+        "//tensorboard/webapp/widgets/line_chart_v2/lib/worker:worker_test",
+        "//tensorboard/webapp/widgets/line_chart_v2/sub_view:sub_view_tests",
         "//tensorboard/webapp/widgets/range_input:range_input_tests",
+        "//tensorboard/webapp/widgets/source_code:source_code_container_test_lib",
+        "//tensorboard/webapp/widgets/source_code:source_code_test_lib",
         "//tensorboard/webapp/widgets/text:text_tests",
     ],
 )
@@ -265,27 +312,39 @@ tf_svg_bundle(
     srcs = [
         # When modifying below, please make sure to update
         # //tensorboard/webapp/testing/mat_icon_module.ts.
+        # 'com_google_material_design_icon' in third_party/js.bzl
         "@com_google_material_design_icon//:arrow_downward_24px.svg",
         "@com_google_material_design_icon//:arrow_upward_24px.svg",
+        "@com_google_material_design_icon//:bug_report_24px.svg",
         "@com_google_material_design_icon//:cancel_24px.svg",
         "@com_google_material_design_icon//:chevron_left_24px.svg",
         "@com_google_material_design_icon//:chevron_right_24px.svg",
         "@com_google_material_design_icon//:clear_24px.svg",
+        "@com_google_material_design_icon//:close_24px.svg",
         "@com_google_material_design_icon//:content_copy_24px.svg",
         "@com_google_material_design_icon//:error_24px.svg",
         "@com_google_material_design_icon//:expand_less_24px.svg",
         "@com_google_material_design_icon//:expand_more_24px.svg",
+        "@com_google_material_design_icon//:filter_alt_24px.svg",
         "@com_google_material_design_icon//:flag_24px.svg",
+        "@com_google_material_design_icon//:fullscreen_24px.svg",
+        "@com_google_material_design_icon//:fullscreen_exit_24px.svg",
         "@com_google_material_design_icon//:get_app_24px.svg",
         "@com_google_material_design_icon//:help_outline_24px.svg",
+        "@com_google_material_design_icon//:image_search_24px.svg",
         "@com_google_material_design_icon//:info_outline_24px.svg",
         "@com_google_material_design_icon//:keep_24px.svg",
         "@com_google_material_design_icon//:keep_outline_24px.svg",
+        "@com_google_material_design_icon//:line_weight_24px.svg",
+        "@com_google_material_design_icon//:more_vert_24px.svg",
         "@com_google_material_design_icon//:refresh_24px.svg",
-        "@com_google_material_design_icon//:settings_24px.svg",
         "@com_google_material_design_icon//:search_24px.svg",
+        "@com_google_material_design_icon//:settings_24px.svg",
+        "@com_google_material_design_icon//:settings_backup_restore_24px.svg",
+        "@com_google_material_design_icon//:settings_overscan_24px.svg",
         "@com_google_material_design_icon//:visibility_off_24px.svg",
         "@com_google_material_design_icon//:group_work_24px.svg",
+        "@com_google_material_design_icon//:warning_24px.svg",
     ],
     out = "icon_bundle.svg",
 )

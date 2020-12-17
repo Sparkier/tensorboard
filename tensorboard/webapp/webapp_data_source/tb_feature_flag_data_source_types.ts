@@ -14,14 +14,7 @@ limitations under the License.
 ==============================================================================*/
 import {Injectable} from '@angular/core';
 
-/**
- * Example of the feature value:
- *
- * reload interval: number
- * is feature enabled: boolean
- * enabled experimental plugins: string[]
- */
-export type FeatureValue = string | boolean | number | string[];
+import {FeatureFlags} from '../feature_flag/types';
 
 @Injectable()
 export abstract class TBFeatureFlagDataSource {
@@ -31,9 +24,15 @@ export abstract class TBFeatureFlagDataSource {
    * The "feature" is very loosely defined so other applications can define more
    * flags. It is up to the application to better type the flags and create necessary
    * facilities (e.g., strongly typed selector).
+   *
+   * The data source may leave some or all feature flags unspecified if it does
+   * not have enough information to provide values.
    */
-  abstract getFeatures(): {
-    enabledExperimentalPlugins: string[];
-    [featureKey: string]: FeatureValue;
-  };
+  abstract getFeatures(): Partial<FeatureFlags>;
 }
+
+export const EXPERIMENTAL_PLUGIN_QUERY_PARAM_KEY = 'experimentalPlugin';
+
+export const GPU_LINE_CHART_QUERY_PARAM_KEY = 'fastChart';
+
+export const SCALARS_BATCH_SIZE_PARAM_KEY = 'scalarsBatchSize';

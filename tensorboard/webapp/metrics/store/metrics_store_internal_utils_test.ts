@@ -15,14 +15,23 @@ limitations under the License.
 import {DataLoadState} from '../../types/data';
 
 import {PluginType} from '../data_source';
-import {buildTagMetadata} from '../testing';
+import {
+  buildTagMetadata,
+  createCardMetadata,
+  buildMetricsState,
+} from '../testing';
 
 import {
+  buildOrReturnStateWithPinnedCopy,
+  buildOrReturnStateWithUnresolvedImportedPins,
   createPluginDataWithLoadable,
   createRunToLoadState,
   getCardId,
+  getPinnedCardId,
   getRunIds,
   getTimeSeriesLoadable,
+  canCreateNewPins,
+  TEST_ONLY,
 } from './metrics_store_internal_utils';
 import {ImageTimeSeriesData} from './metrics_types';
 
@@ -341,6 +350,156 @@ describe('metrics store utils', () => {
           4 /* sample */
         )
       ).toEqual(['run1', 'run3']);
+    });
+  });
+
+  describe('buildOrReturnStateWithUnresolvedImportedPins', () => {
+    it('resolves imported pins', () => {
+      const matchingInfo = {plugin: PluginType.SCALARS, tag: 'accuracy'};
+      const nonMatchingInfo = {plugin: PluginType.SCALARS, tag: 'accuracy2'};
+      const result = buildOrReturnStateWithUnresolvedImportedPins(
+        [matchingInfo, nonMatchingInfo],
+        ['card1'],
+        {card1: {plugin: PluginType.SCALARS, tag: 'accuracy', runId: null}},
+        new Map(),
+        new Map(),
+        {card1: 2}
+      );
+
+      const pinnedCardId = getPinnedCardId('card1');
+      expect(result.unresolvedImportedPinnedCards).toEqual([nonMatchingInfo]);
+      expect(result.cardToPinnedCopy).toEqual(
+        new Map([['card1', pinnedCardId]])
+      );
+      expect(result.pinnedCardToOriginal).toEqual(
+        new Map([[pinnedCardId, 'card1']])
+      );
+    });
+  });
+
+  describe('buildOrReturnStateWithPinnedCopy', () => {
+    it('adds a pinned copy properly', () => {
+      const {
+        cardToPinnedCopy,
+        pinnedCardToOriginal,
+        cardStepIndex,
+        cardMetadataMap,
+      } = buildOrReturnStateWithPinnedCopy(
+        'card1',
+        new Map(),
+        new Map(),
+        {card1: 2},
+        {card1: createCardMetadata()}
+      );
+      const pinnedCardId = getPinnedCardId('card1');
+
+      expect(cardToPinnedCopy).toEqual(new Map([['card1', pinnedCardId]]));
+      expect(pinnedCardToOriginal).toEqual(new Map([[pinnedCardId, 'card1']]));
+      expect(cardStepIndex).toEqual({
+        card1: 2,
+        [pinnedCardId]: 2,
+      });
+      expect(cardMetadataMap).toEqual({
+        card1: createCardMetadata(),
+        [pinnedCardId]: createCardMetadata(),
+      });
+    });
+
+    it('throws if the original card does not have metadata', () => {
+      expect(() => {
+        buildOrReturnStateWithPinnedCopy('card1', new Map(), new Map(), {}, {});
+      }).toThrow();
+    });
+
+    it('no-ops if the card already has a pinned copy', () => {
+      const cardToPinnedCopy = new Map([['card1', 'card-pin1']]);
+      const pinnedCardToOriginal = new Map([['card-pin1', 'card1']]);
+      const cardStepIndexMap = {};
+      const cardMetadataMap = {card1: createCardMetadata()};
+      const originals = {
+        cardToPinnedCopy: new Map(cardToPinnedCopy),
+        pinnedCardToOriginal: new Map(pinnedCardToOriginal),
+        cardStepIndexMap: {...cardStepIndexMap},
+        cardMetadataMap: {...cardMetadataMap},
+      };
+
+      const result = buildOrReturnStateWithPinnedCopy(
+        'card1',
+        cardToPinnedCopy,
+        pinnedCardToOriginal,
+        cardStepIndexMap,
+        cardMetadataMap
+      );
+
+      expect(result.cardToPinnedCopy).toEqual(originals.cardToPinnedCopy);
+      expect(result.pinnedCardToOriginal).toEqual(
+        originals.pinnedCardToOriginal
+      );
+      expect(result.cardStepIndex).toEqual(originals.cardStepIndexMap);
+      expect(result.cardMetadataMap).toEqual(originals.cardMetadataMap);
+    });
+  });
+
+  describe('canCreateNewPins', () => {
+    const originalMaxPinCount = TEST_ONLY.util.MAX_PIN_COUNT;
+
+    afterEach(() => {
+      TEST_ONLY.util.MAX_PIN_COUNT = originalMaxPinCount;
+    });
+
+    it('returns true when pins are under the limit', () => {
+      TEST_ONLY.util.MAX_PIN_COUNT = 3;
+      const state = buildMetricsState({
+        pinnedCardToOriginal: new Map([['pinnedCard1', 'card1']]),
+        unresolvedImportedPinnedCards: [
+          {plugin: PluginType.SCALARS, tag: 'loss'},
+        ],
+      });
+
+      expect(canCreateNewPins(state)).toBe(true);
+    });
+
+    it('returns false when resolved pins reaches the limit', () => {
+      TEST_ONLY.util.MAX_PIN_COUNT = 3;
+      const state = buildMetricsState({
+        pinnedCardToOriginal: new Map([
+          ['pinnedCard1', 'card1'],
+          ['pinnedCard2', 'card2'],
+          ['pinnedCard3', 'card3'],
+        ]),
+        unresolvedImportedPinnedCards: [],
+      });
+
+      expect(canCreateNewPins(state)).toBe(false);
+    });
+
+    it('returns false when unresolved pins reaches the limit', () => {
+      TEST_ONLY.util.MAX_PIN_COUNT = 3;
+      const state = buildMetricsState({
+        pinnedCardToOriginal: new Map(),
+        unresolvedImportedPinnedCards: [
+          {plugin: PluginType.SCALARS, tag: 'loss1'},
+          {plugin: PluginType.SCALARS, tag: 'loss2'},
+          {plugin: PluginType.SCALARS, tag: 'loss3'},
+        ],
+      });
+
+      expect(canCreateNewPins(state)).toBe(false);
+    });
+
+    it('returns false when pins + unresolved pins reaches the limit', () => {
+      TEST_ONLY.util.MAX_PIN_COUNT = 3;
+      const state = buildMetricsState({
+        pinnedCardToOriginal: new Map([
+          ['pinnedCard1', 'card1'],
+          ['pinnedCard2', 'card2'],
+        ]),
+        unresolvedImportedPinnedCards: [
+          {plugin: PluginType.SCALARS, tag: 'loss1'},
+        ],
+      });
+
+      expect(canCreateNewPins(state)).toBe(false);
     });
   });
 });

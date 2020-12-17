@@ -1,5 +1,4 @@
-load("@npm_angular_bazel//:index.bzl", "ng_module")
-load("//tensorboard/defs:defs.bzl", "tf_sass_binary")
+load("//tensorboard/defs:defs.bzl", "tf_ng_module", "tf_sass_binary")
 
 package(default_visibility = ["//tensorboard:internal"])
 
@@ -10,7 +9,7 @@ tf_sass_binary(
     src = "projection_graph_component.scss",
 )
 
-ng_module(
+tf_ng_module(
     name = "projection_graph",
     srcs = [
         "projection_graph_component.ts",
@@ -23,6 +22,7 @@ ng_module(
     ],
     deps = [
         "//tensorboard/webapp:app_state",
+        "//tensorboard/webapp:selectors",
         "//tensorboard/webapp/angular:expect_angular_material_button",
         "//tensorboard/webapp/angular:expect_angular_material_icon",
         "//tensorboard/webapp/angular:expect_angular_material_progress_spinner",
@@ -35,6 +35,7 @@ ng_module(
         "//tensorboard/webapp/plugins/npmi/util:umap_indices",
         "//tensorboard/webapp/plugins/npmi/views/embedding_projection/projection_graph/heatmap",
         "//tensorboard/webapp/third_party:d3",
+        "@npm//@angular/common",
         "@npm//@angular/core",
         "@npm//@angular/forms",
         "@npm//@ngrx/store",

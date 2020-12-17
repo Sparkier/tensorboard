@@ -17,8 +17,8 @@ import {select, Store} from '@ngrx/store';
 
 import {npmiLoaded} from './actions';
 import {State} from '../../app_state';
-import {getRunSelection} from '../../core/store/core_selectors';
 import {getViewActive} from './store/npmi_selectors';
+import {getCurrentRouteRunSelection} from '../../selectors';
 
 /** @typehack */ import * as _typeHackRxjs from 'rxjs';
 
@@ -32,8 +32,8 @@ import {getViewActive} from './store/npmi_selectors';
   `,
 })
 export class NpmiContainer implements OnInit {
-  readonly runs$ = this.store.pipe(select(getRunSelection));
   readonly activeView$ = this.store.pipe(select(getViewActive));
+  readonly runs$ = this.store.pipe(select(getCurrentRouteRunSelection));
 
   constructor(private readonly store: Store<State>) {}
 

@@ -105,6 +105,8 @@ class DataProvider(object):
 
     Unless otherwise noted, any methods on this class may raise errors
     defined in `tensorboard.errors`, like `tensorboard.errors.NotFoundError`.
+
+    If not implemented, optional methods may return `None`.
     """
 
     def data_location(self, ctx=None, *, experiment_id):
@@ -211,7 +213,7 @@ class DataProvider(object):
         experiment_id,
         plugin_name,
         downsample=None,
-        run_tag_filter=None
+        run_tag_filter=None,
     ):
         """Read values from scalar time series.
 
@@ -274,7 +276,7 @@ class DataProvider(object):
         experiment_id,
         plugin_name,
         downsample=None,
-        run_tag_filter=None
+        run_tag_filter=None,
     ):
         """Read values from tensor time series.
 
@@ -335,7 +337,7 @@ class DataProvider(object):
         experiment_id,
         plugin_name,
         downsample=None,
-        run_tag_filter=None
+        run_tag_filter=None,
     ):
         """Read values from blob sequence time series.
 
@@ -484,7 +486,7 @@ class _TimeSeries(object):
         max_wall_time,
         plugin_content,
         description,
-        display_name
+        display_name,
     ):
         self._max_step = max_step
         self._max_wall_time = max_wall_time
@@ -761,7 +763,7 @@ class BlobSequenceTimeSeries(_TimeSeries):
         max_length,
         plugin_content,
         description,
-        display_name
+        display_name,
     ):
         super(BlobSequenceTimeSeries, self).__init__(
             max_step=max_step,
@@ -992,5 +994,8 @@ class RunTagFilter(object):
 
     def __repr__(self):
         return "RunTagFilter(%s)" % ", ".join(
-            ("runs=%r" % (self._runs,), "tags=%r" % (self._tags,),)
+            (
+                "runs=%r" % (self._runs,),
+                "tags=%r" % (self._tags,),
+            )
         )

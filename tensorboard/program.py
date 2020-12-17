@@ -56,8 +56,9 @@ from werkzeug import serving
 from tensorboard import manager
 from tensorboard import version
 from tensorboard.backend import application
-from tensorboard.backend.event_processing import data_ingester
+from tensorboard.backend.event_processing import data_ingester as local_ingester
 from tensorboard.backend.event_processing import event_file_inspector as efi
+from tensorboard.data import server_ingester
 from tensorboard.plugins.core import core_plugin
 from tensorboard.util import argparse_util
 from tensorboard.util import tb_logging
@@ -365,6 +366,10 @@ class TensorBoard(object):
             `signal.SIGTERM`.
           signal_name: The human-readable signal name.
         """
+        # Note to maintainers: Google-internal code overrides this
+        # method (cf. cl/334534610). Double-check changes before
+        # modifying API.
+
         old_signal_handler = None  # set below
 
         def handler(handled_signal_number, frame):
@@ -403,16 +408,39 @@ class TensorBoard(object):
         mimetypes.add_type("font/woff2", ".woff2")
         mimetypes.add_type("text/html", ".html")
 
+    def _make_data_provider(self):
+        """Returns `(data_provider, deprecated_multiplexer)`."""
+        flags = self.flags
+        if flags.grpc_data_provider:
+            ingester = server_ingester.ExistingServerDataIngester(
+                flags.grpc_data_provider
+            )
+        elif flags.load_fast:
+            ingester = server_ingester.SubprocessServerDataIngester(
+                flags.logdir
+            )
+        else:
+            ingester = local_ingester.LocalDataIngester(flags)
+
+        # Stash ingester so that it can avoid GCing Windows file handles.
+        # (See comment in `SubprocessServerDataIngester.start` for details.)
+        self._ingester = ingester
+
+        ingester.start()
+        deprecated_multiplexer = None
+        if isinstance(ingester, local_ingester.LocalDataIngester):
+            deprecated_multiplexer = ingester.deprecated_multiplexer
+        return (ingester.data_provider, deprecated_multiplexer)
+
     def _make_server(self):
         """Constructs the TensorBoard WSGI app and instantiates the server."""
-        ingester = data_ingester.LocalDataIngester(self.flags)
-        ingester.start()
+        (data_provider, deprecated_multiplexer) = self._make_data_provider()
         app = application.TensorBoardWSGIApp(
             self.flags,
             self.plugin_loaders,
-            ingester.data_provider,
+            data_provider,
             self.assets_zip_provider,
-            ingester.deprecated_multiplexer,
+            deprecated_multiplexer,
         )
         return self.server_class(app, self.flags)
 

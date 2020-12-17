@@ -13,29 +13,41 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 import {OverlayContainer} from '@angular/cdk/overlay';
-import {Component, Input} from '@angular/core';
-import {TestBed} from '@angular/core/testing';
-import {ComponentFixture, fakeAsync, flush, tick} from '@angular/core/testing';
+import {ChangeDetectorRef, Component, Input, TemplateRef} from '@angular/core';
+import {
+  ComponentFixture,
+  fakeAsync,
+  flush,
+  TestBed,
+  tick,
+} from '@angular/core/testing';
 import {MatMenuModule} from '@angular/material/menu';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {Store} from '@ngrx/store';
 import {MockStore, provideMockStore} from '@ngrx/store/testing';
-import {State} from '../../../app_state';
-import {DataLoadState} from '../../../types/data';
 import {of, ReplaySubject} from 'rxjs';
 
+import {State} from '../../../app_state';
 import {Run} from '../../../runs/store/runs_types';
 import {buildRun} from '../../../runs/store/testing';
 import * as selectors from '../../../selectors';
 import {MatIconTestingModule} from '../../../testing/mat_icon_module';
+import {DataLoadState} from '../../../types/data';
 import {RunColorScale} from '../../../types/ui';
 import {
   XAxisType as ChartXAxisType,
   YAxisType,
 } from '../../../widgets/line_chart/line_chart_types';
 import {TooltipSortingMethod} from '../../../widgets/line_chart/polymer_interop_types';
+import {
+  DataSeries,
+  DataSeriesMetadataMap,
+  RendererType,
+  ScaleType,
+  TooltipDatum,
+} from '../../../widgets/line_chart_v2/types';
 import {ResizeDetectorTestingModule} from '../../../widgets/resize_detector_testing_module';
 import {TruncatedPathModule} from '../../../widgets/text/truncated_path_module';
 import {PluginType} from '../../data_source';
@@ -45,7 +57,6 @@ import {
   provideMockCardRunToSeriesData,
 } from '../../testing';
 import {TooltipSort, XAxisType} from '../../types';
-
 import {
   ScalarCardComponent,
   ScalarChartEvalPoint,
@@ -53,6 +64,11 @@ import {
   TooltipColumns,
 } from './scalar_card_component';
 import {ScalarCardContainer} from './scalar_card_container';
+import {
+  ScalarCardPoint,
+  ScalarCardSeriesMetadata,
+  SeriesType,
+} from './scalar_card_types';
 
 @Component({
   selector: 'tb-line-chart',
@@ -70,6 +86,33 @@ class TestableLineChart {
   @Input() tooltipSortingMethod!: TooltipSortingMethod;
   redraw() {}
   resetDomain() {}
+}
+
+@Component({
+  selector: 'line-chart',
+  template: `
+    {{ tooltipData | json }}
+    <ng-container
+      *ngIf="tooltipTemplate"
+      [ngTemplateOutlet]="tooltipTemplate"
+      [ngTemplateOutletContext]="{data: tooltipDataForTesting}"
+    ></ng-container>
+  `,
+})
+class TestableGpuLineChart {
+  @Input() preferredRendererType!: RendererType;
+  @Input() seriesData!: DataSeries[];
+  @Input() seriesMetadataMap!: DataSeriesMetadataMap;
+  @Input() yScaleType!: ScaleType;
+  @Input() ignoreYOutliers!: boolean;
+  @Input()
+  tooltipTemplate!: TemplateRef<{data: TooltipDatum[]}>;
+
+  // This input does not exist on real line-chart and is devised to make tooltipTemplate
+  // testable without using the real implementation.
+  @Input() tooltipDataForTesting: TooltipDatum[] = [];
+
+  constructor(public readonly changeDetectorRef: ChangeDetectorRef) {}
 }
 
 describe('scalar card', () => {
@@ -144,6 +187,7 @@ describe('scalar card', () => {
         ScalarCardContainer,
         ScalarCardComponent,
         TestableLineChart,
+        TestableGpuLineChart,
       ],
       providers: [
         provideMockStore({
@@ -156,10 +200,12 @@ describe('scalar card', () => {
     selectSpy = spyOn(store, 'select').and.callThrough();
     overlayContainer = TestBed.inject(OverlayContainer);
     resizeTester = TestBed.inject(ResizeDetectorTestingModule);
-    store.overrideSelector(selectors.getCurrentRouteRunSelection, {});
+    store.overrideSelector(selectors.getCurrentRouteRunSelection, new Map());
     store.overrideSelector(selectors.getExperimentIdForRunId, null);
     store.overrideSelector(selectors.getExperimentIdToAliasMap, {});
     store.overrideSelector(selectors.getRun, null);
+    store.overrideSelector(selectors.getIsGpuChartEnabled, false);
+    store.overrideSelector(selectors.getMetricsXAxisType, XAxisType.STEP);
   });
 
   it('renders empty chart when there is no data', fakeAsync(() => {
@@ -238,7 +284,10 @@ describe('scalar card', () => {
       cardMetadata,
       runToSeries
     );
-    store.overrideSelector(selectors.getCurrentRouteRunSelection, {run1: true});
+    store.overrideSelector(
+      selectors.getCurrentRouteRunSelection,
+      new Map([['run1', true]])
+    );
     store.overrideSelector(selectors.getMetricsXAxisType, XAxisType.STEP);
     selectSpy
       .withArgs(selectors.getRun, {runId: 'run1'})
@@ -389,7 +438,6 @@ describe('scalar card', () => {
         By.directive(TestableLineChart)
       );
       const {metadata} = lineChartEl.componentInstance.seriesDataList[0];
-      console.log(metadata);
       expect(metadata).toEqual({displayName: 'existing_exp/Foobar'});
     }));
   });
@@ -409,9 +457,10 @@ describe('scalar card', () => {
         null /* metadataOverride */,
         runToSeries
       );
-      store.overrideSelector(selectors.getCurrentRouteRunSelection, {
-        run1: true,
-      });
+      store.overrideSelector(
+        selectors.getCurrentRouteRunSelection,
+        new Map([['run1', true]])
+      );
     });
 
     const expectedPoints = {
@@ -546,7 +595,10 @@ describe('scalar card', () => {
       null /* metadataOverride */,
       runToSeries
     );
-    store.overrideSelector(selectors.getCurrentRouteRunSelection, {run1: true});
+    store.overrideSelector(
+      selectors.getCurrentRouteRunSelection,
+      new Map([['run1', true]])
+    );
     store.overrideSelector(
       selectors.getMetricsTooltipSort,
       TooltipSort.ASCENDING
@@ -611,10 +663,13 @@ describe('scalar card', () => {
       null /* metadataOverride */,
       runToSeries
     );
-    store.overrideSelector(selectors.getCurrentRouteRunSelection, {
-      run1: true,
-      run2: false,
-    });
+    store.overrideSelector(
+      selectors.getCurrentRouteRunSelection,
+      new Map([
+        ['run1', true],
+        ['run2', false],
+      ])
+    );
 
     const fixture = createComponent('card1');
 
@@ -627,10 +682,13 @@ describe('scalar card', () => {
     expect(lineChart.seriesDataList.length).toBe(3);
     expect(visibleRunIds).toEqual(['run1']);
 
-    store.overrideSelector(selectors.getCurrentRouteRunSelection, {
-      run1: false,
-      run3: true,
-    });
+    store.overrideSelector(
+      selectors.getCurrentRouteRunSelection,
+      new Map([
+        ['run1', false],
+        ['run3', true],
+      ])
+    );
     triggerStoreUpdate();
     fixture.detectChanges();
 
@@ -796,9 +854,10 @@ describe('scalar card', () => {
         null /* metadataOverride */,
         runToSeries
       );
-      store.overrideSelector(selectors.getCurrentRouteRunSelection, {
-        run1: true,
-      });
+      store.overrideSelector(
+        selectors.getCurrentRouteRunSelection,
+        new Map([['run1', true]])
+      );
 
       const fixture = createComponent('card1');
       const lineChartComponent = fixture.debugElement.query(
@@ -806,10 +865,13 @@ describe('scalar card', () => {
       );
       const before = lineChartComponent.componentInstance.seriesDataList;
 
-      store.overrideSelector(selectors.getCurrentRouteRunSelection, {
-        run1: true,
-        shouldBeNoop: true,
-      });
+      store.overrideSelector(
+        selectors.getCurrentRouteRunSelection,
+        new Map([
+          ['run1', true],
+          ['shouldBeNoop', true],
+        ])
+      );
       triggerStoreUpdate();
       fixture.detectChanges();
 
@@ -826,9 +888,10 @@ describe('scalar card', () => {
         null /* metadataOverride */,
         runToSeries
       );
-      store.overrideSelector(selectors.getCurrentRouteRunSelection, {
-        run1: true,
-      });
+      store.overrideSelector(
+        selectors.getCurrentRouteRunSelection,
+        new Map([['run1', true]])
+      );
 
       const fixture = createComponent('card1');
       const lineChartComponent = fixture.debugElement.query(
@@ -836,9 +899,10 @@ describe('scalar card', () => {
       );
       const before = lineChartComponent.componentInstance.seriesDataList;
 
-      store.overrideSelector(selectors.getCurrentRouteRunSelection, {
-        run1: false,
-      });
+      store.overrideSelector(
+        selectors.getCurrentRouteRunSelection,
+        new Map([['run1', false]])
+      );
       triggerStoreUpdate();
       fixture.detectChanges();
 
@@ -861,9 +925,10 @@ describe('scalar card', () => {
         runToSeries
       );
       store.overrideSelector(selectors.getMetricsXAxisType, XAxisType.STEP);
-      store.overrideSelector(selectors.getCurrentRouteRunSelection, {
-        run1: true,
-      });
+      store.overrideSelector(
+        selectors.getCurrentRouteRunSelection,
+        new Map([['run1', true]])
+      );
 
       const fixture = createComponent('card1');
       const lineChartComponent = fixture.debugElement.query(
@@ -898,5 +963,342 @@ describe('scalar card', () => {
       resizeTester.simulateResize(fixture);
       expect(redrawSpy).toHaveBeenCalledTimes(1);
     }));
+  });
+
+  describe('gpu line chart integration', () => {
+    beforeEach(() => {
+      store.overrideSelector(selectors.getIsGpuChartEnabled, true);
+      store.overrideSelector(selectors.getRunColorMap, {});
+      store.overrideSelector(selectors.getMetricsScalarSmoothing, 0.1);
+    });
+
+    const Selector = {
+      GPU_LINE_CHART: By.directive(TestableGpuLineChart),
+      SVG_LINE_CHART: By.directive(TestableLineChart),
+      TOOLTIP_HEADER_COLUMN: By.css('table.tooltip th'),
+      TOOLTIP_ROW: By.css('table.tooltip .tooltip-row'),
+    };
+
+    it('renders the gpu line chart instead of svg one', fakeAsync(() => {
+      const fixture = createComponent('card1');
+      expect(fixture.debugElement.query(Selector.SVG_LINE_CHART)).toBeNull();
+      expect(
+        fixture.debugElement.query(Selector.GPU_LINE_CHART)
+      ).not.toBeNull();
+    }));
+
+    it('passes data series and metadata with smoothed values', fakeAsync(() => {
+      store.overrideSelector(selectors.getMetricsXAxisType, XAxisType.STEP);
+      store.overrideSelector(selectors.getRunColorMap, {
+        run1: '#f00',
+        run2: '#0f0',
+      });
+      store.overrideSelector(selectors.getMetricsScalarSmoothing, 0.1);
+
+      const runToSeries = {
+        run1: [
+          {wallTime: 2, value: 1, step: 1},
+          {wallTime: 4, value: 10, step: 2},
+        ],
+        run2: [{wallTime: 2, value: 1, step: 1}],
+      };
+      provideMockCardRunToSeriesData(
+        selectSpy,
+        PluginType.SCALARS,
+        'card1',
+        null /* metadataOverride */,
+        runToSeries
+      );
+
+      const fixture = createComponent('card1');
+      const lineChart = fixture.debugElement.query(Selector.GPU_LINE_CHART);
+
+      expect(lineChart.componentInstance.seriesData).toEqual([
+        {
+          id: 'run1',
+          points: [
+            // Keeps the data structure as is but do notice adjusted wallTime and
+            // line_chart_v2 required "x" and "y" props.
+            {wallTime: 2000, value: 1, step: 1, x: 1, y: 1},
+            {wallTime: 4000, value: 10, step: 2, x: 2, y: 10},
+          ],
+        },
+        {id: 'run2', points: [{wallTime: 2000, value: 1, step: 1, x: 1, y: 1}]},
+        {
+          id: '["smoothed","run1"]',
+          points: [
+            {wallTime: 2000, value: 1, step: 1, x: 1, y: 1},
+            // Exact smoothed value is not too important.
+            {wallTime: 4000, value: 10, step: 2, x: 2, y: jasmine.any(Number)},
+          ],
+        },
+        {
+          id: '["smoothed","run2"]',
+          points: [{wallTime: 2000, value: 1, step: 1, x: 1, y: 1}],
+        },
+      ]);
+      expect(lineChart.componentInstance.seriesMetadataMap).toEqual({
+        run1: {
+          id: 'run1',
+          displayName: 'run1',
+          type: SeriesType.ORIGINAL,
+          visible: false,
+          color: '#f00',
+          opacity: 0.4,
+          aux: true,
+        },
+        run2: {
+          id: 'run2',
+          displayName: 'run2',
+          type: SeriesType.ORIGINAL,
+          visible: false,
+          color: '#0f0',
+          opacity: 0.4,
+          aux: true,
+        },
+        '["smoothed","run1"]': {
+          id: '["smoothed","run1"]',
+          displayName: 'run1',
+          type: SeriesType.DERIVED,
+          originalSeriesId: 'run1',
+          visible: false,
+          color: '#f00',
+          opacity: 1,
+          aux: false,
+        },
+        '["smoothed","run2"]': {
+          id: '["smoothed","run2"]',
+          displayName: 'run2',
+          type: SeriesType.DERIVED,
+          originalSeriesId: 'run2',
+          visible: false,
+          color: '#0f0',
+          opacity: 1,
+          aux: false,
+        },
+      });
+    }));
+
+    it('does not set smoothed series when it is disabled,', fakeAsync(() => {
+      store.overrideSelector(selectors.getMetricsXAxisType, XAxisType.STEP);
+      store.overrideSelector(selectors.getRunColorMap, {
+        run1: '#f00',
+        run2: '#0f0',
+      });
+      store.overrideSelector(selectors.getMetricsScalarSmoothing, 0);
+      const runToSeries = {
+        run1: [
+          {wallTime: 2, value: 1, step: 1},
+          {wallTime: 4, value: 10, step: 2},
+        ],
+        run2: [{wallTime: 2, value: 1, step: 1}],
+      };
+      provideMockCardRunToSeriesData(
+        selectSpy,
+        PluginType.SCALARS,
+        'card1',
+        null /* metadataOverride */,
+        runToSeries
+      );
+
+      const fixture = createComponent('card1');
+      const lineChart = fixture.debugElement.query(Selector.GPU_LINE_CHART);
+
+      expect(lineChart.componentInstance.seriesData).toEqual([
+        {
+          id: 'run1',
+          points: [
+            // Keeps the data structure as is but requires "x" and "y" props.
+            {wallTime: 2000, value: 1, step: 1, x: 1, y: 1},
+            {wallTime: 4000, value: 10, step: 2, x: 2, y: 10},
+          ],
+        },
+        {id: 'run2', points: [{wallTime: 2000, value: 1, step: 1, x: 1, y: 1}]},
+      ]);
+      expect(lineChart.componentInstance.seriesMetadataMap).toEqual({
+        run1: {
+          id: 'run1',
+          displayName: 'run1',
+          type: SeriesType.ORIGINAL,
+          visible: false,
+          color: '#f00',
+          opacity: 1,
+          aux: false,
+        },
+        run2: {
+          id: 'run2',
+          displayName: 'run2',
+          type: SeriesType.ORIGINAL,
+          visible: false,
+          color: '#0f0',
+          opacity: 1,
+          aux: false,
+        },
+      });
+    }));
+
+    describe('tooltip', () => {
+      function buildTooltipDatum(
+        metadata?: ScalarCardSeriesMetadata,
+        point: Partial<ScalarCardPoint> = {}
+      ): TooltipDatum<ScalarCardSeriesMetadata, ScalarCardPoint> {
+        return {
+          id: metadata?.id ?? 'a',
+          metadata: {
+            type: SeriesType.ORIGINAL,
+            id: 'a',
+            displayName: 'A name',
+            visible: true,
+            color: '#f00',
+            ...metadata,
+          },
+          closestPointIndex: 0,
+          point: {x: 0, y: 0, value: 0, step: 0, wallTime: 0, ...point},
+        };
+      }
+
+      function setTooltipData(
+        fixture: ComponentFixture<ScalarCardContainer>,
+        tooltipData: TooltipDatum[]
+      ) {
+        const lineChart = fixture.debugElement.query(Selector.GPU_LINE_CHART);
+
+        lineChart.componentInstance.tooltipDataForTesting = tooltipData;
+        lineChart.componentInstance.changeDetectorRef.markForCheck();
+      }
+
+      it('renders the tooltip using the custom template (no smooth)', fakeAsync(() => {
+        store.overrideSelector(selectors.getMetricsScalarSmoothing, 0);
+        const fixture = createComponent('card1');
+        setTooltipData(fixture, [
+          buildTooltipDatum(
+            {
+              id: 'row1',
+              type: SeriesType.ORIGINAL,
+              displayName: 'Row 1',
+              visible: true,
+              color: '#00f',
+            },
+            {
+              x: 10,
+              step: 10,
+              y: 1000,
+              value: 1000,
+              wallTime: new Date('2020-01-01').getTime(),
+            }
+          ),
+          buildTooltipDatum(
+            {
+              id: 'row2',
+              type: SeriesType.ORIGINAL,
+              displayName: 'Row 2',
+              visible: true,
+              color: '#0f0',
+            },
+            {
+              x: 1000,
+              step: 1000,
+              y: -1000,
+              value: -1000,
+              wallTime: new Date('2020-12-31').getTime(),
+            }
+          ),
+        ]);
+        fixture.detectChanges();
+
+        const headerCols = fixture.debugElement.queryAll(
+          Selector.TOOLTIP_HEADER_COLUMN
+        );
+        const headerText = headerCols.map(
+          (col) => col.nativeElement.textContent
+        );
+        expect(headerText).toEqual(['', 'Run', 'Value', 'Step', 'Time']);
+
+        const rows = fixture.debugElement.queryAll(Selector.TOOLTIP_ROW);
+        const tableContent = rows.map((row) => {
+          return row
+            .queryAll(By.css('td'))
+            .map((td) => td.nativeElement.textContent);
+        });
+
+        expect(tableContent).toEqual([
+          ['', 'Row 1', '1000', '10', '1/1/20, 12:00 AM'],
+          ['', 'Row 2', '-1000', '1,000', '12/31/20, 12:00 AM'],
+        ]);
+      }));
+
+      it('renders the tooltip using the custom template (smooth)', fakeAsync(() => {
+        store.overrideSelector(selectors.getMetricsScalarSmoothing, 0.5);
+        const fixture = createComponent('card1');
+        setTooltipData(fixture, [
+          buildTooltipDatum(
+            {
+              id: 'smoothed_row1',
+              type: SeriesType.DERIVED,
+              displayName: 'Row 1',
+              visible: true,
+              color: '#00f',
+              aux: false,
+              originalSeriesId: 'row1',
+            },
+            {
+              x: 10,
+              step: 10,
+              y: 500,
+              value: 1000,
+              wallTime: new Date('2020-01-01').getTime(),
+            }
+          ),
+          buildTooltipDatum(
+            {
+              id: 'smoothed_row2',
+              type: SeriesType.DERIVED,
+              displayName: 'Row 2',
+              visible: true,
+              color: '#0f0',
+              aux: false,
+              originalSeriesId: 'row2',
+            },
+            {
+              x: 1000,
+              step: 1000,
+              y: -500,
+              value: -1000,
+              wallTime: new Date('2020-12-31').getTime(),
+            }
+          ),
+        ]);
+        fixture.detectChanges();
+
+        const headerCols = fixture.debugElement.queryAll(
+          Selector.TOOLTIP_HEADER_COLUMN
+        );
+        const headerText = headerCols.map(
+          (col) => col.nativeElement.textContent
+        );
+        expect(headerText).toEqual([
+          '',
+          'Run',
+          'Smoothed',
+          'Value',
+          'Step',
+          'Time',
+        ]);
+
+        const rows = fixture.debugElement.queryAll(Selector.TOOLTIP_ROW);
+        const tableContent = rows.map((row) => {
+          return row
+            .queryAll(By.css('td'))
+            .map((td) => td.nativeElement.textContent);
+        });
+
+        expect(tableContent).toEqual([
+          ['', 'Row 1', '500', '1000', '10', '1/1/20, 12:00 AM'],
+          // Print the step with comma for readability. The value is yet optimize for
+          // readability (we may use the scientific formatting).
+          ['', 'Row 2', '-500', '-1000', '1,000', '12/31/20, 12:00 AM'],
+        ]);
+      }));
+    });
   });
 });

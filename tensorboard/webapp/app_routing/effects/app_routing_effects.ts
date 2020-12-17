@@ -33,7 +33,7 @@ import {
   navigationRequested,
   stateRehydratedFromUrl,
 } from '../actions';
-import {areRoutesEqual} from '../internal_utils';
+import {areRoutesEqual, getRouteId} from '../internal_utils';
 import {Location} from '../location';
 import {ProgrammaticalNavigationModule} from '../programmatical_navigation_module';
 import {RouteConfigs} from '../route_config';
@@ -41,7 +41,7 @@ import {RouteRegistryModule} from '../route_registry_module';
 import {getActiveRoute} from '../store/app_routing_selectors';
 import {Navigation, Route} from '../types';
 
-/** @typehack */ import * as _typeHackNgrxEffects from '@ngrx/effects/effects';
+/** @typehack */ import * as _typeHackNgrxEffects from '@ngrx/effects';
 /** @typehack */ import * as _typeHackModels from '@ngrx/store/src/models';
 /** @typehack */ import * as _typeHackStore from '@ngrx/store';
 
@@ -228,21 +228,44 @@ export class AppRoutingEffects {
         ofType(navigated),
         withLatestFrom(this.store.select(getActiveRoute)),
         filter(([, route]) => Boolean(route)),
-        map(([, route]) => route!),
-        filter((route) => {
+        map(([navigatedAction, route]) => {
+          // The URL hash can be set via HashStorageComponent (which uses
+          // Polymer's tf-storage). DeepLinkProviders also modify the URL when
+          // a provider's serializeStateToQueryParams() emits. These result in
+          // the URL updated without the previous hash. HashStorageComponent
+          // makes no attempt to restore the hash, so it is dropped.
+
+          // This results in bad behavior when refreshing (e.g. lost active
+          // plugin) and when changing dashboards (e.g. lost tagFilter).
+
+          // TODO(b/169799696): either AppRouting should manage the URL entirely
+          // (including hash), or we make the app wait for AppRouting to
+          // initialize before setting the active plugin hash.
+          // See https://github.com/tensorflow/tensorboard/issues/4207.
+          const oldRoute = navigatedAction.before;
+          const preserveHash =
+            oldRoute === null ||
+            getRouteId(oldRoute.routeKind, oldRoute.params) ===
+              getRouteId(route!.routeKind, route!.params);
+          return {
+            preserveHash,
+            route: route!,
+          };
+        }),
+        filter(({route}) => {
           return !areRoutesEqual(route, {
             pathname: this.location.getPath(),
             queryParams: this.location.getSearch(),
           });
         }),
-        tap((route) => {
+        tap(({preserveHash, route}) => {
           if (route.navigationOptions.replaceState) {
             this.location.replaceState(
-              this.location.getFullPathFromRouteOrNav(route)
+              this.location.getFullPathFromRouteOrNav(route, preserveHash)
             );
           } else {
             this.location.pushState(
-              this.location.getFullPathFromRouteOrNav(route)
+              this.location.getFullPathFromRouteOrNav(route, preserveHash)
             );
           }
         })

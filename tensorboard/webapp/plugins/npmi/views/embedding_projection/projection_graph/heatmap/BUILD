@@ -1,8 +1,8 @@
-load("@npm_angular_bazel//:index.bzl", "ng_module")
+load("//tensorboard/defs:defs.bzl", "tf_ng_module")
 
 package(default_visibility = ["//tensorboard:internal"])
 
-ng_module(
+tf_ng_module(
     name = "heatmap",
     srcs = [
         "heatmap_component.ts",
@@ -17,8 +17,11 @@ ng_module(
         "//tensorboard/webapp/plugins/npmi/util:metric_type",
         "//tensorboard/webapp/third_party:d3",
         "//tensorboard/webapp/third_party:tfjs",
+        "@npm//@angular/common",
         "@npm//@angular/core",
         "@npm//@angular/forms",
+        "@npm//@ngrx/store",
         "@npm//@types/d3",
+        "@npm//rxjs",
     ],
 )

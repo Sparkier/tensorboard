@@ -14,7 +14,7 @@ limitations under the License.
 ==============================================================================*/
 import {Component, ChangeDetectionStrategy, Input} from '@angular/core';
 
-import {Store, select} from '@ngrx/store';
+import {select, Store} from '@ngrx/store';
 import {map} from 'rxjs/operators';
 
 import {State} from '../../../../../../app_state';

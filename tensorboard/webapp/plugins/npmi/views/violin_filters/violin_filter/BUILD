@@ -1,5 +1,4 @@
-load("@npm_angular_bazel//:index.bzl", "ng_module")
-load("//tensorboard/defs:defs.bzl", "tf_sass_binary", "tf_ts_library")
+load("//tensorboard/defs:defs.bzl", "tf_ng_module", "tf_sass_binary", "tf_ts_library")
 
 package(default_visibility = ["//tensorboard:internal"])
 
@@ -10,7 +9,7 @@ tf_sass_binary(
     src = "violin_filter_component.scss",
 )
 
-ng_module(
+tf_ng_module(
     name = "violin_filter",
     srcs = [
         "violin_filter_component.ts",
@@ -23,6 +22,7 @@ ng_module(
     ],
     deps = [
         "//tensorboard/webapp:app_state",
+        "//tensorboard/webapp:selectors",
         "//tensorboard/webapp/angular:expect_angular_material_button",
         "//tensorboard/webapp/angular:expect_angular_material_icon",
         "//tensorboard/webapp/core/store",
@@ -32,10 +32,11 @@ ng_module(
         "//tensorboard/webapp/plugins/npmi/util:filter_annotations",
         "//tensorboard/webapp/plugins/npmi/util:violin_data",
         "//tensorboard/webapp/third_party:d3",
+        "//tensorboard/webapp/types:ui",
+        "@npm//@angular/common",
         "@npm//@angular/core",
         "@npm//@angular/forms",
         "@npm//@ngrx/store",
-        "@npm//@types/d3",
         "@npm//rxjs",
     ],
 )
@@ -49,6 +50,7 @@ tf_ts_library(
     deps = [
         ":violin_filter",
         "//tensorboard/webapp:app_state",
+        "//tensorboard/webapp:selectors",
         "//tensorboard/webapp/angular:expect_angular_core_testing",
         "//tensorboard/webapp/angular:expect_ngrx_store_testing",
         "//tensorboard/webapp/core/store",
@@ -59,6 +61,7 @@ tf_ts_library(
         "//tensorboard/webapp/plugins/npmi/testing",
         "//tensorboard/webapp/runs_legacy",
         "//tensorboard/webapp/testing:mat_icon",
+        "//tensorboard/webapp/types:ui",
         "@npm//@angular/core",
         "@npm//@angular/platform-browser",
         "@npm//@ngrx/store",

@@ -1,5 +1,4 @@
-load("@npm_angular_bazel//:index.bzl", "ng_module")
-load("//tensorboard/defs:defs.bzl", "tf_sass_binary", "tf_ts_library")
+load("//tensorboard/defs:defs.bzl", "tf_ng_module", "tf_sass_binary", "tf_ts_library")
 
 package(default_visibility = ["//tensorboard:internal"])
 
@@ -10,7 +9,7 @@ tf_sass_binary(
     src = "annotation_component.scss",
 )
 
-ng_module(
+tf_ng_module(
     name = "annotation",
     srcs = [
         "annotation_component.ts",
@@ -23,13 +22,18 @@ ng_module(
     ],
     deps = [
         "//tensorboard/webapp:app_state",
+        "//tensorboard/webapp:selectors",
+        "//tensorboard/webapp/angular:expect_angular_material_button",
         "//tensorboard/webapp/angular:expect_angular_material_checkbox",
         "//tensorboard/webapp/angular:expect_angular_material_icon",
         "//tensorboard/webapp/core/store",
+        "//tensorboard/webapp/plugins/npmi/actions",
         "//tensorboard/webapp/plugins/npmi/store",
         "//tensorboard/webapp/plugins/npmi/store:types",
         "//tensorboard/webapp/plugins/npmi/util:metric_type",
         "//tensorboard/webapp/third_party:d3",
+        "//tensorboard/webapp/types:ui",
+        "@npm//@angular/common",
         "@npm//@angular/core",
         "@npm//@angular/forms",
         "@npm//@ngrx/store",
@@ -46,6 +50,7 @@ tf_ts_library(
     deps = [
         ":annotation",
         "//tensorboard/webapp:app_state",
+        "//tensorboard/webapp:selectors",
         "//tensorboard/webapp/angular:expect_angular_core_testing",
         "//tensorboard/webapp/angular:expect_angular_material_checkbox",
         "//tensorboard/webapp/angular:expect_ngrx_store_testing",
@@ -55,6 +60,7 @@ tf_ts_library(
         "//tensorboard/webapp/plugins/npmi/store",
         "//tensorboard/webapp/plugins/npmi/store:types",
         "//tensorboard/webapp/plugins/npmi/testing",
+        "//tensorboard/webapp/types:ui",
         "@npm//@angular/core",
         "@npm//@angular/platform-browser",
         "@npm//@ngrx/store",

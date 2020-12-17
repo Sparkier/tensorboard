@@ -1,18 +1,9 @@
 load("//tensorboard/defs:protos.bzl", "tb_proto_library")
+load("@build_bazel_rules_nodejs//:index.bzl", "nodejs_binary")
 
 package(default_visibility = ["//tensorboard:internal"])
 
 licenses(["notice"])
-
-filegroup(
-    name = "tf_web_library_default_typings",
-    srcs = [
-        # Ordering probably matters.
-        "@com_microsoft_typescript//:lib.es6.d.ts",
-        "@io_angular_clutz//:src/resources/closure.lib.d.ts",
-        "clutz.d.ts",
-    ],
-)
 
 py_test(
     name = "tb_proto_library_test",
@@ -43,11 +34,18 @@ tb_proto_library(
     ],
 )
 
-exports_files(["web_test_python_stub.template.py"])
-
-exports_files(
-    ["clutz.d.ts"],
-    visibility = ["//tensorboard:internal"],
-)
-
 exports_files(["rollup_config.js"])
+
+# Custom ts_library compiler that runs tsc_wrapped with angular/compiler-cli statically linked
+# This can be used with worker mode because we don't need the linker at runtime to make
+# the angular plugin loadable
+# Just a clone of @npm//@bazel/typescript/bin:tsc_wrapped with added deps
+nodejs_binary(
+    name = "tsc_wrapped_with_angular",
+    data = [
+        "@npm//@angular/compiler-cli",
+        "@npm//@bazel/typescript",
+    ],
+    entry_point = "@npm//:node_modules/@bazel/typescript/internal/tsc_wrapped/tsc_wrapped.js",
+    visibility = ["//tensorboard:__subpackages__"],
+)

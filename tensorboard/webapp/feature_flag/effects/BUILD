@@ -1,15 +1,15 @@
-load("@npm_angular_bazel//:index.bzl", "ng_module")
+load("//tensorboard/defs:defs.bzl", "tf_ng_module")
 
 package(default_visibility = ["//tensorboard:internal"])
 
-ng_module(
+tf_ng_module(
     name = "effects",
     srcs = [
         "feature_flag_effects.ts",
     ],
     deps = [
         "//tensorboard/webapp/feature_flag/actions",
-        "//tensorboard/webapp/webapp_data_source:feature_flag",
+        "//tensorboard/webapp/webapp_data_source:feature_flag_types",
         "@npm//@angular/core",
         "@npm//@ngrx/effects",
         "@npm//@ngrx/store",
@@ -17,7 +17,7 @@ ng_module(
     ],
 )
 
-ng_module(
+tf_ng_module(
     name = "effects_test_lib",
     testonly = True,
     srcs = [
@@ -27,6 +27,7 @@ ng_module(
         ":effects",
         "//tensorboard/webapp/angular:expect_angular_core_testing",
         "//tensorboard/webapp/angular:expect_ngrx_store_testing",
+        "//tensorboard/webapp/feature_flag:testing",
         "//tensorboard/webapp/feature_flag/actions",
         "//tensorboard/webapp/feature_flag/store:types",
         "//tensorboard/webapp/webapp_data_source:feature_flag_testing",

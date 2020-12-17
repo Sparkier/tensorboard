@@ -12,6 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
+import {Component} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {Store} from '@ngrx/store';
@@ -28,6 +29,7 @@ import {
   CustomElementLoadingMechanism,
   IframeLoadingMechanism,
   NgElementLoadingMechanism,
+  NoLoadingMechanism,
 } from '../types/api';
 import {DataLoadState} from '../types/data';
 import {State} from '../core/store';
@@ -39,6 +41,9 @@ import {
 } from '../core/store/core_selectors';
 import {PluginsListFailureCode} from '../core/types';
 import {TestingDebuggerModule} from '../../plugins/debugger_v2/tf_debugger_v2_plugin/testing';
+import {buildFeatureFlag} from '../feature_flag/testing';
+import {getFeatureFlags} from '../feature_flag/store/feature_flag_selectors';
+import {getIsFeatureFlagsLoaded} from '../feature_flag/store/feature_flag_selectors';
 
 /** @typehack */ import * as _typeHackStore from '@ngrx/store';
 
@@ -48,6 +53,27 @@ function expectPluginIframe(element: HTMLElement, name: string) {
     `data/plugin_entry.html?name=${name}`
   );
 }
+
+/**
+ * A Component used to test that custom error templates can be passed to
+ * the `plugins` component.
+ */
+@Component({
+  template: `
+    <ng-template #environmentFailureNotFoundTemplate>
+      <h3 class="custom-not-found-template">Custom Not Found Error</h3>
+    </ng-template>
+    <ng-template #environmentFailureUnknownTemplate>
+      <h3 class="custom-unknown-template">Custom Unknown Error</h3>
+    </ng-template>
+    <plugins
+      [environmentFailureNotFoundTemplate]="environmentFailureNotFoundTemplate"
+      [environmentFailureUnknownTemplate]="environmentFailureUnknownTemplate"
+    >
+    </plugins>
+  `,
+})
+class CustomizedErrorTemplatesComponent {}
 
 class TestableCustomElement extends HTMLElement {
   constructor() {
@@ -61,6 +87,10 @@ class TestableCustomElement extends HTMLElement {
 }
 
 customElements.define('tb-bar', TestableCustomElement);
+
+interface TbElement extends HTMLElement {
+  reload: () => void;
+}
 
 describe('plugins_component', () => {
   let store: MockStore<State>;
@@ -108,7 +138,11 @@ describe('plugins_component', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       providers: [provideMockStore(), PluginsContainer, PluginRegistryModule],
-      declarations: [PluginsContainer, PluginsComponent],
+      declarations: [
+        PluginsContainer,
+        PluginsComponent,
+        CustomizedErrorTemplatesComponent,
+      ],
       imports: [TestingDebuggerModule, ExtraDashboardModule],
     }).compileComponents();
     store = TestBed.inject<Store<State>>(Store) as MockStore<State>;
@@ -123,6 +157,8 @@ describe('plugins_component', () => {
       data_location: 'foobar',
       window_title: 'Tests!',
     });
+    store.overrideSelector(getIsFeatureFlagsLoaded, true);
+    store.overrideSelector(getFeatureFlags, buildFeatureFlag());
 
     createElementSpy = spyOn(document, 'createElement').and.callThrough();
     createElementSpy
@@ -147,6 +183,24 @@ describe('plugins_component', () => {
       fixture.detectChanges();
       const el = fixture.debugElement.query(By.css('.plugins'));
       expect(el.nativeElement.childElementCount).toBe(0);
+    });
+
+    it('creates no plugin when feature flags are not loaded', async () => {
+      store.overrideSelector(getIsFeatureFlagsLoaded, false);
+      store.overrideSelector(getActivePlugin, 'foo');
+
+      const fixture = TestBed.createComponent(PluginsContainer);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const plugins1 = fixture.debugElement.query(By.css('.plugins'));
+      expect(plugins1.nativeElement.childElementCount).toBe(0);
+
+      store.overrideSelector(getIsFeatureFlagsLoaded, true);
+      store.refreshState();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const plugins2 = fixture.debugElement.query(By.css('.plugins'));
+      expect(plugins2.nativeElement.childElementCount).toBe(1);
     });
 
     it('creates an element for CUSTOM_ELEMENT type of plugin', async () => {
@@ -276,9 +330,26 @@ describe('plugins_component', () => {
         barElement.shadowRoot.firstElementChild.clientWidth
       ).toBeGreaterThan(0);
     });
+
+    it('assigns feature flags to CUSTOM_ELEMENT plugins', async () => {
+      store.overrideSelector(
+        getFeatureFlags,
+        buildFeatureFlag({inColab: true})
+      );
+      setActivePlugin('bar');
+
+      const fixture = TestBed.createComponent(PluginsContainer);
+      fixture.detectChanges();
+
+      const pluginElement = fixture.debugElement.query(By.css('.plugins'))
+        .children[0].nativeNode;
+      expect((pluginElement as any).featureFlags).toEqual(
+        buildFeatureFlag({inColab: true})
+      );
+    });
   });
 
-  describe('updates', () => {
+  describe('reload', () => {
     function setLastLoadedTime(
       timeInMs: number | null,
       state = DataLoadState.LOADED
@@ -292,78 +363,157 @@ describe('plugins_component', () => {
       store.refreshState();
     }
 
-    it('invokes reload method on the dashboard DOM', () => {
-      const fixture = TestBed.createComponent(PluginsContainer);
+    let alphaEl: TbElement;
+    let betaEl: TbElement;
+    let gammaEl: TbElement;
 
-      setLastLoadedTime(null, DataLoadState.NOT_LOADED);
-      setActivePlugin('bar');
-      fixture.detectChanges();
-      setActivePlugin('foo');
-      fixture.detectChanges();
-      setActivePlugin('bar');
-      fixture.detectChanges();
-
-      const {nativeElement} = fixture.debugElement.query(By.css('.plugins'));
-      // Stamped 'bar' and 'foo'
-      expect(nativeElement.children.length).toBe(2);
-      const [barElement, fooElement] = nativeElement.children;
-      const barReloadSpy = jasmine.createSpy();
-      barElement.reload = barReloadSpy;
-      const fooReloadSpy = jasmine.createSpy();
-      fooElement.reload = fooReloadSpy;
-
-      setLastLoadedTime(1);
-      fixture.detectChanges();
-      expect(barReloadSpy).toHaveBeenCalledTimes(1);
-      expect(fooReloadSpy).not.toHaveBeenCalled();
-
-      setLastLoadedTime(1);
-      fixture.detectChanges();
-      expect(barReloadSpy).toHaveBeenCalledTimes(1);
-      expect(fooReloadSpy).not.toHaveBeenCalled();
-
-      setLastLoadedTime(2);
-      fixture.detectChanges();
-      expect(barReloadSpy).toHaveBeenCalledTimes(2);
-      expect(fooReloadSpy).not.toHaveBeenCalled();
-
-      setActivePlugin('foo');
-      fixture.detectChanges();
-
-      setLastLoadedTime(3);
-      fixture.detectChanges();
-      expect(barReloadSpy).toHaveBeenCalledTimes(2);
-      expect(fooReloadSpy).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not invoke reload method on dom if disable_reload', () => {
-      store.overrideSelector(getPlugins, {
-        bar: {
+    beforeEach(() => {
+      const PLUGINS = {
+        alpha: {
+          disable_reload: false,
+          enabled: true,
+          loading_mechanism: {
+            type: LoadingMechanismType.CUSTOM_ELEMENT,
+            element_name: 'tb-alpha',
+          } as CustomElementLoadingMechanism,
+          tab_name: 'Alpha',
+          remove_dom: false,
+        },
+        beta: {
+          disable_reload: false,
+          enabled: true,
+          loading_mechanism: {
+            type: LoadingMechanismType.CUSTOM_ELEMENT,
+            element_name: 'tb-beta',
+          } as CustomElementLoadingMechanism,
+          tab_name: 'Beta',
+          remove_dom: false,
+        },
+        gamma: {
           disable_reload: true,
           enabled: true,
           loading_mechanism: {
             type: LoadingMechanismType.CUSTOM_ELEMENT,
-            element_name: 'tb-bar',
+            element_name: 'tb-gamma',
           } as CustomElementLoadingMechanism,
-          tab_name: 'Bar',
+          tab_name: 'Gamma',
           remove_dom: false,
         },
-      });
+        zeta: {
+          disable_reload: true,
+          enabled: true,
+          loading_mechanism: {
+            type: LoadingMechanismType.NONE,
+          } as NoLoadingMechanism,
+          tab_name: 'zeta',
+          remove_dom: false,
+        },
+      };
+      store.overrideSelector(getPlugins, PLUGINS);
+
+      alphaEl = document.createElement('span') as any;
+      alphaEl.reload = jasmine.createSpy();
+      betaEl = document.createElement('span') as any;
+      betaEl.reload = jasmine.createSpy();
+      gammaEl = document.createElement('span') as any;
+      gammaEl.reload = jasmine.createSpy();
+
+      createElementSpy.withArgs('tb-alpha').and.returnValue(alphaEl);
+      createElementSpy.withArgs('tb-beta').and.returnValue(betaEl);
+      createElementSpy.withArgs('tb-gamma').and.returnValue(gammaEl);
+    });
+
+    it('invokes reload on initial page render and new plugin stamp', () => {
+      const fixture = TestBed.createComponent(PluginsContainer);
+      // When TensorBoard starts, the new dashboard is stamped only after plugins
+      // listing is loaded and thus the last loaded time is not zero.
+      setLastLoadedTime(100, DataLoadState.LOADED);
+      fixture.detectChanges();
+
+      setActivePlugin('alpha');
+      fixture.detectChanges();
+
+      expect(alphaEl.reload).toHaveBeenCalledTimes(1);
+
+      // Without changing the lastLoadedTime, stamp a new dashboard.
+      setActivePlugin('beta');
+      fixture.detectChanges();
+
+      expect(betaEl.reload).toHaveBeenCalledTimes(1);
+
+      // Even for the plugin that disabled the auto reload, it should invoke reload once
+      // at the stamp time.
+      setActivePlugin('gamma');
+      fixture.detectChanges();
+
+      expect(gammaEl.reload).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not break when acitvePlugin id changes to one without UI', () => {
+      const fixture = TestBed.createComponent(PluginsContainer);
+      setLastLoadedTime(100, DataLoadState.LOADED);
+      fixture.detectChanges();
+
+      setActivePlugin('alpha');
+      fixture.detectChanges();
+
+      // zeta does not have a DOM and it definitely cannot have `reload` method called.
+      setActivePlugin('zeta');
+      fixture.detectChanges();
+    });
+
+    it('invokes reload method on the dashboard DOM on data load time changes', () => {
       const fixture = TestBed.createComponent(PluginsContainer);
 
       setLastLoadedTime(null, DataLoadState.NOT_LOADED);
-      setActivePlugin('bar');
+      setActivePlugin('alpha');
+      fixture.detectChanges();
+      setActivePlugin('beta');
+      fixture.detectChanges();
+      setActivePlugin('alpha');
       fixture.detectChanges();
 
-      const {nativeElement} = fixture.debugElement.query(By.css('.plugins'));
-      const [barElement] = nativeElement.children;
-      const barReloadSpy = jasmine.createSpy();
-      barElement.reload = barReloadSpy;
+      // Initial stamp reloads.
+      expect(alphaEl.reload).toHaveBeenCalledTimes(1);
+      expect(betaEl.reload).toHaveBeenCalledTimes(1);
+
+      setLastLoadedTime(1);
+      fixture.detectChanges();
+      expect(alphaEl.reload).toHaveBeenCalledTimes(2);
+      expect(betaEl.reload).toHaveBeenCalledTimes(1);
+
+      setLastLoadedTime(1);
+      fixture.detectChanges();
+      expect(alphaEl.reload).toHaveBeenCalledTimes(2);
+      expect(betaEl.reload).toHaveBeenCalledTimes(1);
+
+      setLastLoadedTime(2);
+      fixture.detectChanges();
+      expect(alphaEl.reload).toHaveBeenCalledTimes(3);
+      expect(betaEl.reload).toHaveBeenCalledTimes(1);
+
+      setActivePlugin('beta');
+      fixture.detectChanges();
+
+      setLastLoadedTime(3);
+      fixture.detectChanges();
+      expect(alphaEl.reload).toHaveBeenCalledTimes(3);
+      expect(betaEl.reload).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not invoke reload method on dom if disable_reload', () => {
+      const fixture = TestBed.createComponent(PluginsContainer);
+
+      setLastLoadedTime(100, DataLoadState.NOT_LOADED);
+      setActivePlugin('gamma');
+      fixture.detectChanges();
+
+      expect(gammaEl.reload).toHaveBeenCalledTimes(1);
 
       setLastLoadedTime(1);
       fixture.detectChanges();
 
-      expect(barReloadSpy).not.toHaveBeenCalled();
+      expect(gammaEl.reload).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -393,9 +543,9 @@ describe('plugins_component', () => {
       const fixture = TestBed.createComponent(PluginsContainer);
       fixture.detectChanges();
 
-      expect(
-        fixture.debugElement.query(By.css('.unknown-plugin'))
-      ).not.toBeNull();
+      expect(fixture.debugElement.nativeElement.textContent).toContain(
+        'There’s no dashboard by the name of “you_do_not_know_me”'
+      );
     });
 
     it(
@@ -412,13 +562,13 @@ describe('plugins_component', () => {
         const fixture = TestBed.createComponent(PluginsContainer);
         fixture.detectChanges();
 
-        expect(
-          fixture.debugElement.query(By.css('.unknown-plugin'))
-        ).not.toBeNull();
+        expect(fixture.debugElement.nativeElement.textContent).toContain(
+          'There’s no dashboard by the name of “you_do_not_know_me”'
+        );
       }
     );
 
-    it('shows warning when the plugins listing failed to load', () => {
+    it('shows warning when environment failed NOT_FOUND', () => {
       store.overrideSelector(getActivePlugin, null);
       store.overrideSelector(getPluginsListLoaded, {
         state: DataLoadState.FAILED,
@@ -428,9 +578,24 @@ describe('plugins_component', () => {
       const fixture = TestBed.createComponent(PluginsContainer);
       fixture.detectChanges();
 
-      expect(
-        fixture.debugElement.query(By.css('.no-active-plugin'))
-      ).not.toBeNull();
+      expect(fixture.debugElement.nativeElement.textContent).toContain(
+        'Data could not be loaded.'
+      );
+    });
+
+    it('shows warning when environment failed UNKNOWN', () => {
+      store.overrideSelector(getActivePlugin, null);
+      store.overrideSelector(getPluginsListLoaded, {
+        state: DataLoadState.FAILED,
+        lastLoadedTimeInMs: null,
+        failureCode: PluginsListFailureCode.UNKNOWN,
+      });
+      const fixture = TestBed.createComponent(PluginsContainer);
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.nativeElement.textContent).toContain(
+        'Data could not be loaded.'
+      );
     });
 
     it(
@@ -446,9 +611,9 @@ describe('plugins_component', () => {
         const fixture = TestBed.createComponent(PluginsContainer);
         fixture.detectChanges();
 
-        expect(
-          fixture.debugElement.query(By.css('.no-active-plugin'))
-        ).not.toBeNull();
+        expect(fixture.debugElement.nativeElement.textContent).toContain(
+          'No dashboards are active for the current data set.'
+        );
       }
     );
 
@@ -462,9 +627,45 @@ describe('plugins_component', () => {
       const fixture = TestBed.createComponent(PluginsContainer);
       fixture.detectChanges();
 
-      expect(
-        fixture.debugElement.query(By.css('.no-active-plugin'))
-      ).not.toBeNull();
+      expect(fixture.debugElement.nativeElement.textContent).toContain(
+        'No dashboards are active for the current data set.'
+      );
+    });
+
+    describe('custom error templates', () => {
+      it('shows warning when environment failed NOT_FOUND', () => {
+        store.overrideSelector(getActivePlugin, null);
+        store.overrideSelector(getPluginsListLoaded, {
+          state: DataLoadState.FAILED,
+          lastLoadedTimeInMs: null,
+          failureCode: PluginsListFailureCode.NOT_FOUND,
+        });
+        const fixture = TestBed.createComponent(
+          CustomizedErrorTemplatesComponent
+        );
+        fixture.detectChanges();
+
+        expect(fixture.debugElement.nativeElement.textContent).toBe(
+          'Custom Not Found Error'
+        );
+      });
+
+      it('shows warning when environment failed UNKNOWN', () => {
+        store.overrideSelector(getActivePlugin, null);
+        store.overrideSelector(getPluginsListLoaded, {
+          state: DataLoadState.FAILED,
+          lastLoadedTimeInMs: null,
+          failureCode: PluginsListFailureCode.UNKNOWN,
+        });
+        const fixture = TestBed.createComponent(
+          CustomizedErrorTemplatesComponent
+        );
+        fixture.detectChanges();
+
+        expect(fixture.debugElement.nativeElement.textContent).toBe(
+          'Custom Unknown Error'
+        );
+      });
     });
 
     describe('data location', () => {

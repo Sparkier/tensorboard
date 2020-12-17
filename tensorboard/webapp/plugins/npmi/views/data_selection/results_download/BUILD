@@ -1,5 +1,4 @@
-load("@npm_angular_bazel//:index.bzl", "ng_module")
-load("//tensorboard/defs:defs.bzl", "tf_sass_binary", "tf_ts_library")
+load("//tensorboard/defs:defs.bzl", "tf_ng_module", "tf_sass_binary", "tf_ts_library")
 
 package(default_visibility = ["//tensorboard:internal"])
 
@@ -10,7 +9,7 @@ tf_sass_binary(
     src = "results_download_component.scss",
 )
 
-ng_module(
+tf_ng_module(
     name = "results_download",
     srcs = [
         "results_download_component.ts",
@@ -23,6 +22,7 @@ ng_module(
     ],
     deps = [
         "//tensorboard/webapp:app_state",
+        "//tensorboard/webapp:selectors",
         "//tensorboard/webapp/angular:expect_angular_material_button",
         "//tensorboard/webapp/angular:expect_angular_material_icon",
         "//tensorboard/webapp/core/store",
@@ -30,6 +30,7 @@ ng_module(
         "//tensorboard/webapp/plugins/npmi/store:types",
         "//tensorboard/webapp/plugins/npmi/util:csv_result",
         "//tensorboard/webapp/plugins/npmi/util:metric_type",
+        "@npm//@angular/common",
         "@npm//@angular/core",
         "@npm//@ngrx/store",
         "@npm//rxjs",
@@ -45,6 +46,7 @@ tf_ts_library(
     deps = [
         ":results_download",
         "//tensorboard/webapp:app_state",
+        "//tensorboard/webapp:selectors",
         "//tensorboard/webapp/angular:expect_angular_core_testing",
         "//tensorboard/webapp/angular:expect_ngrx_store_testing",
         "//tensorboard/webapp/core/store",

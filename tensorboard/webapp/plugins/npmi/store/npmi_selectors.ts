@@ -16,7 +16,7 @@ import {createSelector, createFeatureSelector} from '@ngrx/store';
 import {
   NPMI_FEATURE_KEY,
   NpmiState,
-  LoadState,
+  DataLoadState,
   AnnotationDataListing,
   MetricListing,
   MetricCountListing,
@@ -29,8 +29,8 @@ import {
 
 // HACK: These imports are for type inference.
 // https://github.com/bazelbuild/rules_nodejs/issues/1013
-/** @typehack */ import * as _typeHackSelector from '@ngrx/store/src/selector';
-/** @typehack */ import * as _typeHackStore from '@ngrx/store/store';
+
+/** @typehack */ import * as _typeHackStore from '@ngrx/store';
 
 const selectNpmiState = createFeatureSelector<State, NpmiState>(
   NPMI_FEATURE_KEY
@@ -38,8 +38,8 @@ const selectNpmiState = createFeatureSelector<State, NpmiState>(
 
 export const getPluginDataLoaded = createSelector(
   selectNpmiState,
-  (state: NpmiState): LoadState => {
-    return state.pluginDataLoaded;
+  (state: NpmiState): DataLoadState => {
+    return state.pluginDataLoaded.state;
   }
 );
 

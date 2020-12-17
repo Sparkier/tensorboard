@@ -5,8 +5,6 @@ package(default_visibility = ["//tensorboard:internal"])
 
 licenses(["notice"])
 
-exports_files(["LICENSE"])
-
 # Compatibility helpers in the `tensorboard.compat` module.
 #
 # This module provides aliases for importing variations on the TensorFlow APIs.
@@ -21,7 +19,7 @@ exports_files(["LICENSE"])
 py_library(
     name = "compat",
     srcs = ["__init__.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     visibility = ["//visibility:public"],
     deps = [
         "//tensorboard:lazy",
@@ -39,7 +37,7 @@ py_library(
 # as written but can be swapped out for a real dependency.
 py_library(
     name = "tensorflow",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":compat",
         "//tensorboard/compat/tensorflow_stub",
@@ -52,7 +50,7 @@ py_library(
 py_library(
     name = "no_tensorflow",
     srcs = ["notf.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":tensorflow",
     ],

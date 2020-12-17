@@ -1,5 +1,4 @@
-load("@npm_angular_bazel//:index.bzl", "ng_module")
-load("//tensorboard/defs:defs.bzl", "tf_sass_binary", "tf_ts_library")
+load("//tensorboard/defs:defs.bzl", "tf_ng_module", "tf_sass_binary", "tf_ts_library")
 
 package(default_visibility = ["//tensorboard:internal"])
 
@@ -10,7 +9,7 @@ tf_sass_binary(
     src = "annotations_list_component.scss",
 )
 
-ng_module(
+tf_ng_module(
     name = "annotations_list",
     srcs = [
         "annotations_list_component.ts",
@@ -23,6 +22,7 @@ ng_module(
     ],
     deps = [
         "//tensorboard/webapp:app_state",
+        "//tensorboard/webapp:selectors",
         "//tensorboard/webapp/angular:expect_angular_cdk_scrolling",
         "//tensorboard/webapp/core/store",
         "//tensorboard/webapp/plugins/npmi/actions",
@@ -35,6 +35,7 @@ ng_module(
         "//tensorboard/webapp/plugins/npmi/views/annotations_list/annotations_list_toolbar",
         "//tensorboard/webapp/plugins/npmi/views/annotations_list/header",
         "//tensorboard/webapp/plugins/npmi/views/annotations_list/legend",
+        "@npm//@angular/common",
         "@npm//@angular/core",
         "@npm//@ngrx/store",
         "@npm//rxjs",
@@ -50,6 +51,7 @@ tf_ts_library(
     deps = [
         ":annotations_list",
         "//tensorboard/webapp:app_state",
+        "//tensorboard/webapp:selectors",
         "//tensorboard/webapp/angular:expect_angular_cdk_scrolling",
         "//tensorboard/webapp/angular:expect_angular_core_testing",
         "//tensorboard/webapp/angular:expect_ngrx_store_testing",

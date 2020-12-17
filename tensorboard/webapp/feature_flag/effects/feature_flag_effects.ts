@@ -19,11 +19,12 @@ import {Actions, ofType, createEffect} from '@ngrx/effects';
 import {map} from 'rxjs/operators';
 
 import {TBFeatureFlagDataSource} from '../../webapp_data_source/tb_feature_flag_data_source_types';
-import {featuresLoaded} from '../actions/feature_flag_actions';
+import {partialFeatureFlagsLoaded} from '../actions/feature_flag_actions';
 
 /** @typehack */ import * as _typeHackRxjs from 'rxjs';
 /** @typehack */ import * as _typeHackNgrx from '@ngrx/store/src/models';
 /** @typehack */ import * as _typeHackNgrxEffects from '@ngrx/effects';
+/** @typehack */ import * as _typeHackNgrxStore from '@ngrx/store';
 
 const effectsInitialized = createAction('[FEATURE FLAG] Effects Init');
 
@@ -35,7 +36,7 @@ export class FeatureFlagEffects {
       ofType(effectsInitialized),
       map(() => {
         const features = this.dataSource.getFeatures();
-        return featuresLoaded({features});
+        return partialFeatureFlagsLoaded({features});
       })
     )
   );

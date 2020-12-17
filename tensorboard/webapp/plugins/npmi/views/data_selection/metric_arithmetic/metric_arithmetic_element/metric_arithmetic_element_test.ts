@@ -15,6 +15,7 @@ limitations under the License.
 /**
  * Unit tests for the metric arithmetic element.
  */
+import {NO_ERRORS_SCHEMA} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
@@ -61,6 +62,7 @@ describe('Npmi Metric Arithmetic Element Container', () => {
           initialState: appStateFromNpmiState(createNpmiState()),
         }),
       ],
+      schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
 
     store = TestBed.inject<Store<State>>(Store) as MockStore<State>;
@@ -130,7 +132,7 @@ describe('Npmi Metric Arithmetic Element Container', () => {
         fixture.detectChanges();
 
         expect(dispatchedActions).toEqual([
-          npmiActions.npmiChangeMetricFilter({
+          npmiActions.npmiMetricFilterChanged({
             metric: 'npmi@test',
             max: 1.0,
             min: 0.2,
@@ -158,7 +160,7 @@ describe('Npmi Metric Arithmetic Element Container', () => {
         fixture.detectChanges();
 
         expect(dispatchedActions).toEqual([
-          npmiActions.npmiChangeMetricFilter({
+          npmiActions.npmiMetricFilterChanged({
             metric: 'npmi@test',
             max: 1.0,
             min: -1.0,
@@ -237,7 +239,7 @@ describe('Npmi Metric Arithmetic Element Container', () => {
         fixture.detectChanges();
 
         expect(dispatchedActions).toEqual([
-          npmiActions.npmiChangeMetricFilter({
+          npmiActions.npmiMetricFilterChanged({
             metric: 'npmi@test',
             max: 0.2,
             min: -1.0,
@@ -319,7 +321,7 @@ describe('Npmi Metric Arithmetic Element Container', () => {
         fixture.detectChanges();
 
         expect(dispatchedActions).toEqual([
-          npmiActions.npmiChangeMetricFilter({
+          npmiActions.npmiMetricFilterChanged({
             metric: 'npmi@test',
             max: -2.0,
             min: -1.0,

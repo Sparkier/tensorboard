@@ -5,8 +5,6 @@ package(default_visibility = ["//tensorboard:internal"])
 
 licenses(["notice"])
 
-exports_files(["LICENSE"])
-
 py_library(
     name = "base_plugin",
     srcs = ["base_plugin.py"],
@@ -20,7 +18,7 @@ py_library(
 py_test(
     name = "base_plugin_test",
     srcs = ["base_plugin_test.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_plugin",
         "//tensorboard:test",

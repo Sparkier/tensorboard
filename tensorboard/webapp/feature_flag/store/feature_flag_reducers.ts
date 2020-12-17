@@ -13,22 +13,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 import {Action, createReducer, on} from '@ngrx/store';
+
 import * as actions from '../actions/feature_flag_actions';
+import {initialState} from './feature_flag_store_config_provider';
 import {FeatureFlagState} from './feature_flag_types';
 
-/** @typehack */ import * as _typeHackStore from '@ngrx/store/store';
-
-const initialState: FeatureFlagState = {
-  enabledExperimentalPlugins: [],
-};
+/** @typehack */ import * as _typeHackStore from '@ngrx/store';
 
 const reducer = createReducer<FeatureFlagState>(
   initialState,
-  on(actions.featuresLoaded, (state, {features}) => {
-    return {...state, ...features};
+  on(actions.partialFeatureFlagsLoaded, (state, {features}) => {
+    // Feature flag values have been loaded from a data source. Override current
+    // flags with any values specified by the data source and leave values for
+    // unspecified properties unchanged.
+    return {
+      ...state,
+      isFeatureFlagsLoaded: true,
+      features: {
+        ...state.features,
+        ...features,
+      },
+    };
   })
 );
 
-export function reducers(state: FeatureFlagState, action: Action) {
+export function reducers(state: FeatureFlagState | undefined, action: Action) {
   return reducer(state, action);
 }

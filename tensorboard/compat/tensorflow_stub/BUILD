@@ -5,8 +5,6 @@ package(default_visibility = ["//tensorboard:internal"])
 
 licenses(["notice"])
 
-exports_files(["LICENSE"])
-
 py_library(
     name = "tensorflow_stub",
     srcs = glob(["*.py"]) + [
@@ -15,7 +13,7 @@ py_library(
         "io/__init__.py",
         "io/gfile.py",
     ],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//tensorboard:expect_absl_flags_installed",
         "//tensorboard:expect_numpy_installed",
@@ -28,7 +26,7 @@ py_test(
     name = "gfile_test",
     size = "small",
     srcs = ["io/gfile_test.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     tags = ["support_notf"],
     deps = [
         ":tensorflow_stub",
@@ -40,7 +38,7 @@ py_test(
     name = "gfile_tf_test",
     size = "small",
     srcs = ["io/gfile_tf_test.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     tags = ["support_notf"],
     deps = [
         ":tensorflow_stub",
@@ -52,7 +50,7 @@ py_test(
     name = "gfile_s3_test",
     size = "small",
     srcs = ["io/gfile_s3_test.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     tags = [
         "manual",
         "notap",

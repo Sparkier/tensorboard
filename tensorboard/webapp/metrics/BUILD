@@ -1,16 +1,17 @@
-load("@npm_angular_bazel//:index.bzl", "ng_module")
-load("//tensorboard/defs:defs.bzl", "tf_ts_library")
+load("//tensorboard/defs:defs.bzl", "tf_ng_module", "tf_ts_library")
 
 package(default_visibility = ["//tensorboard:internal"])
 
 licenses(["notice"])
 
-ng_module(
+tf_ng_module(
     name = "metrics",
     srcs = [
         "metrics_module.ts",
     ],
     deps = [
+        "//tensorboard/webapp/alert:alert_action",
+        "//tensorboard/webapp/metrics/actions",
         "//tensorboard/webapp/metrics/data_source",
         "//tensorboard/webapp/metrics/effects",
         "//tensorboard/webapp/metrics/store",
@@ -30,7 +31,7 @@ tf_ts_library(
         "types.ts",
     ],
     deps = [
-        "//tensorboard/webapp/metrics/data_source",
+        "//tensorboard/webapp/metrics/data_source:types",
         "//tensorboard/webapp/widgets/histogram:types",
         "//tensorboard/webapp/widgets/line_chart",
     ],

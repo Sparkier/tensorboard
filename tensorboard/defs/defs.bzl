@@ -13,9 +13,9 @@
 # limitations under the License.
 """External-only delegates for various BUILD rules."""
 
-load("@npm_bazel_rollup//:index.bzl", "rollup_bundle")
-load("@npm_bazel_karma//:index.bzl", "karma_web_test_suite")
-load("@npm_bazel_typescript//:index.bzl", "ts_config", "ts_devserver", "ts_library")
+load("@npm//@bazel/rollup:index.bzl", "rollup_bundle")
+load("@npm//@bazel/karma:index.bzl", "karma_web_test_suite")
+load("@npm//@bazel/typescript:index.bzl", "ts_config", "ts_devserver", "ts_library")
 load("@io_bazel_rules_sass//:defs.bzl", "sass_binary", "sass_library")
 
 def tensorboard_webcomponent_library(**kwargs):
@@ -66,7 +66,7 @@ def tf_ts_library(strict_checks = True, **kwargs):
         tsconfig = "//:tsconfig-test"
     kwargs.setdefault("deps", []).append("@npm//tslib")
 
-    ts_library(tsconfig = tsconfig, **kwargs)
+    ts_library(tsconfig = tsconfig, supports_workers = True, **kwargs)
 
 def tf_ts_devserver(**kwargs):
     """TensorBoard wrapper for the rule for a TypeScript dev server."""
@@ -99,6 +99,7 @@ def tf_ng_web_test_suite(runtime_deps = [], bootstrap = [], deps = [], **kwargs)
         static_files = [
             "@npm//:node_modules/lodash/lodash.js",
             "@npm//:node_modules/d3/dist/d3.js",
+            "@npm//:node_modules/three/build/three.js",
         ],
         **kwargs
     )
@@ -125,6 +126,7 @@ def tf_sass_binary(deps = [], include_paths = [], **kwargs):
         include_paths = include_paths + [
             "external/npm/node_modules",
         ],
+        sourcemap = False,
         **kwargs
     )
 
@@ -135,5 +137,15 @@ def tf_sass_library(**kwargs):
     "@io_bazel_rules_sass//:defs.bzl".
     """
     sass_library(
+        **kwargs
+    )
+
+def tf_ng_module(assets = [], **kwargs):
+    """TensorBoard wrapper for Angular modules."""
+    ts_library(
+        compiler = "//tensorboard/defs:tsc_wrapped_with_angular",
+        supports_workers = True,
+        use_angular_plugin = True,
+        angular_assets = assets,
         **kwargs
     )

@@ -43,7 +43,7 @@ from tensorboard import program
 from tensorboard.plugins import base_plugin
 
 
-_MESSAGE_TOS = u"""\
+_MESSAGE_TOS = """\
 Your use of this service is subject to Google's Terms of Service
 <https://policies.google.com/terms> and Privacy Policy
 <https://policies.google.com/privacy>, and TensorBoard.dev's Terms of Service
@@ -73,15 +73,17 @@ def _prompt_for_user_ack(intent):
     sys.stderr.write("\n")
 
 
-def _run(flags):
+def _run(flags, experiment_url_callback=None):
     """Runs the main uploader program given parsed flags.
 
     Args:
       flags: An `argparse.Namespace`.
+      experiment_url_callback: A function accepting a single string argument
+        containing the full TB.dev URL of the uploaded experiment.
     """
 
     logging.set_stderrthreshold(logging.WARNING)
-    intent = _get_intent(flags)
+    intent = _get_intent(flags, experiment_url_callback)
 
     store = auth.CredentialsStore()
     if isinstance(intent, _AuthRevokeIntent):
@@ -191,7 +193,7 @@ class _DeleteExperimentIntent(_Intent):
     """The user intends to delete an experiment."""
 
     _MESSAGE_TEMPLATE = textwrap.dedent(
-        u"""\
+        """\
         This will delete the experiment on https://tensorboard.dev with the
         following experiment ID:
 
@@ -239,7 +241,7 @@ class _UpdateMetadataIntent(_Intent):
     """The user intends to update the metadata for an experiment."""
 
     _MESSAGE_TEMPLATE = textwrap.dedent(
-        u"""\
+        """\
         This will modify the metadata associated with the experiment on
         https://tensorboard.dev with the following experiment ID:
 
@@ -302,7 +304,7 @@ class _ListIntent(_Intent):
     """The user intends to list all their experiments."""
 
     _MESSAGE = textwrap.dedent(
-        u"""\
+        """\
         This will list all experiments that you've uploaded to
         https://tensorboard.dev. TensorBoard.dev experiments are visible
         to everyone. Do not upload sensitive data.
@@ -378,7 +380,7 @@ class UploadIntent(_Intent):
     """The user intends to upload an experiment from the given logdir."""
 
     _MESSAGE_TEMPLATE = textwrap.dedent(
-        u"""\
+        """\
         This will upload your TensorBoard logs to https://tensorboard.dev/ from
         the following directory:
 
@@ -397,6 +399,7 @@ class UploadIntent(_Intent):
         verbosity=None,
         dry_run=None,
         one_shot=None,
+        experiment_url_callback=None,
     ):
         self.logdir = logdir
         self.name = name
@@ -404,6 +407,7 @@ class UploadIntent(_Intent):
         self.verbosity = verbosity
         self.dry_run = False if dry_run is None else dry_run
         self.one_shot = False if one_shot is None else one_shot
+        self.experiment_url_callback = experiment_url_callback
 
     def get_ack_message_body(self):
         return self._MESSAGE_TEMPLATE.format(logdir=self.logdir)
@@ -427,19 +431,31 @@ class UploadIntent(_Intent):
             verbosity=self.verbosity,
             one_shot=self.one_shot,
         )
+        if self.one_shot and not os.path.isdir(self.logdir):
+            print("%s: No such directory." % self.logdir)
+            print(
+                "User specified `one_shot` mode with an unavailable "
+                "logdir. Exiting without creating an experiment."
+            )
+            return
         experiment_id = uploader.create_experiment()
         url = server_info_lib.experiment_url(server_info, experiment_id)
-        print(
-            "Upload started and will continue reading any new data as it's added"
-        )
-        print("to the logdir. To stop uploading, press Ctrl-C.")
+        if self.experiment_url_callback is not None:
+            self.experiment_url_callback(url)
+        if not self.one_shot:
+            print(
+                "Upload started and will continue reading any new data as it's "
+                "added to the logdir.\n\nTo stop uploading, press Ctrl-C."
+            )
         if self.dry_run:
             print(
                 "\n** This is a dry run. "
                 "No data will be sent to tensorboard.dev. **\n"
             )
         else:
-            print("\nView your TensorBoard live at: %s\n" % url)
+            print(
+                "\nNew experiment created. View your TensorBoard at: %s\n" % url
+            )
         interrupted = False
         try:
             uploader.start_uploading()
@@ -449,12 +465,24 @@ class UploadIntent(_Intent):
         except KeyboardInterrupt:
             interrupted = True
         finally:
-            end_message = "\n"
+            if self.one_shot and not uploader.has_data():
+                print(
+                    "TensorBoard was run in `one_shot` mode, but did not find "
+                    "any uploadable data in the specified logdir: %s\n"
+                    "An empty experiment was created. "
+                    "To delete the empty experiment you can execute the "
+                    "following\n\n"
+                    "    tensorboard dev delete --experiment_id=%s"
+                    % (self.logdir, uploader.experiment_id)
+                )
+            end_message = "\n\n"
             if interrupted:
                 end_message += "Interrupted."
             else:
                 end_message += "Done."
-            if not self.dry_run:
+            # Only Add the "View your TensorBoard" message if there was any
+            # data added at all.
+            if not self.dry_run and uploader.has_data():
                 end_message += " View your TensorBoard at %s" % url
             sys.stdout.write(end_message + "\n")
             sys.stdout.flush()
@@ -464,7 +492,7 @@ class _ExportIntent(_Intent):
     """The user intends to download all their experiment data."""
 
     _MESSAGE_TEMPLATE = textwrap.dedent(
-        u"""\
+        """\
         This will download all your experiment data from https://tensorboard.dev
         and save it to the following directory:
 
@@ -508,11 +536,13 @@ class _ExportIntent(_Intent):
         )
 
 
-def _get_intent(flags):
+def _get_intent(flags, experiment_url_callback=None):
     """Determines what the program should do (upload, delete, ...).
 
     Args:
       flags: An `argparse.Namespace` with the parsed flags.
+      experiment_url_callback: A function accepting a single string argument
+        containing the full TB.dev URL of the uploaded experiment.
 
     Returns:
       An `_Intent` instance.
@@ -533,6 +563,7 @@ def _get_intent(flags):
                 verbosity=flags.verbose,
                 dry_run=flags.dry_run,
                 one_shot=flags.one_shot,
+                experiment_url_callback=experiment_url_callback,
             )
         else:
             raise base_plugin.FlagsError(
@@ -621,6 +652,15 @@ def _die(message):
 class UploaderSubcommand(program.TensorBoardSubcommand):
     """Integration point with `tensorboard` CLI."""
 
+    def __init__(self, experiment_url_callback=None):
+        """Constructor of UploaderSubcommand.
+
+        Args:
+          experiment_url_callback: A function accepting a single string argument
+            containing the full TB.dev URL of the uploaded experiment.
+        """
+        self._experiment_url_callback = experiment_url_callback
+
     def name(self):
         return "dev"
 
@@ -628,7 +668,7 @@ class UploaderSubcommand(program.TensorBoardSubcommand):
         flags_parser.define_flags(parser)
 
     def run(self, flags):
-        return _run(flags)
+        return _run(flags, self._experiment_url_callback)
 
     def help(self):
         return "upload data to TensorBoard.dev"

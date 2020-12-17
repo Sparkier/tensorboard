@@ -16,7 +16,6 @@ import {
   AnnotationDataListing,
   AnnotationSort,
   EmbeddingDataSet,
-  EmbeddingListing,
   SortOrder,
 } from '../store/npmi_types';
 import {stripMetricString} from './metric_type';
@@ -26,119 +25,112 @@ export function sortAnnotations(
   sort: AnnotationSort,
   embeddingData: EmbeddingDataSet | undefined
 ): string[] {
-  let result = Object.keys(annotationData);
+  const result = Object.keys(annotationData);
+  const similarityBased =
+    sort.order === SortOrder.DISSIMILAR || sort.order === SortOrder.SIMILAR;
+  let distanceData: {[annotation: string]: number} = {};
   if (sort.metric === '') {
     return result;
   }
-  if (
-    (sort.order === SortOrder.SIMILAR || sort.order === SortOrder.DISSIMILAR) &&
-    embeddingData !== undefined
-  ) {
-    return (result = embeddingSort(embeddingData.points, result, sort));
+  if (similarityBased) {
+    if (embeddingData === undefined) {
+      return result;
+    }
+    if (embeddingData.points[sort.metric] === undefined) {
+      return result;
+    }
+    distanceData = calculateDistances(result, embeddingData, sort);
+  } else {
+    distanceData = extractExtremeData(result, annotationData, sort);
   }
-  return classicSort(annotationData, result, sort);
+  return sortData(
+    result,
+    distanceData,
+    sort.order === SortOrder.ASCENDNG || sort.order === SortOrder.SIMILAR
+  );
 }
 
-function classicSort(
+function sortData(
+  keys: string[],
+  values: {[annotation: string]: number},
+  ascending: boolean
+) {
+  if (ascending) {
+    return keys.sort((a, b) => {
+      return values[a] - values[b];
+    });
+  }
+  return keys.sort((a, b) => {
+    return values[b] - values[a];
+  });
+}
+
+function extractExtremeData(
+  keys: string[],
   annotationData: AnnotationDataListing,
-  keys: string[],
   sort: AnnotationSort
-): string[] {
+) {
   const strippedMetric = stripMetricString(sort.metric);
-  switch (sort.order) {
-    case SortOrder.DOWN: {
-      const maxData: {[annotation: string]: number} = {};
-      for (const annotation of keys) {
-        maxData[annotation] = Math.max(
-          ...annotationData[annotation]
-            .filter((annotation) => annotation.metric === strippedMetric)
-            .map((filtered) =>
-              filtered.nPMIValue === null ? -Infinity : filtered.nPMIValue
-            )
-        );
-      }
-      keys = keys.sort((a, b) => {
-        return maxData[b] - maxData[a];
-      });
-      break;
+  const extremeData: {[annotation: string]: number} = {};
+  if (sort.order === SortOrder.DESCENDING) {
+    for (const annotation of keys) {
+      extremeData[annotation] = Math.max(
+        ...annotationData[annotation]
+          .filter((annotation) => annotation.metric === strippedMetric)
+          .map((filtered) =>
+            filtered.nPMIValue === null ? -Infinity : filtered.nPMIValue
+          )
+      );
     }
-    case SortOrder.UP: {
-      const minData: {[annotation: string]: number} = {};
-      for (const annotation of keys) {
-        minData[annotation] = Math.min(
-          ...annotationData[annotation]
-            .filter((annotation) => annotation.metric === strippedMetric)
-            .map((filtered) =>
-              filtered.nPMIValue === null ? Infinity : filtered.nPMIValue
-            )
-        );
-      }
-      keys = keys.sort((a, b) => {
-        return minData[a] - minData[b];
-      });
-      break;
+  } else {
+    for (const annotation of keys) {
+      extremeData[annotation] = Math.min(
+        ...annotationData[annotation]
+          .filter((annotation) => annotation.metric === strippedMetric)
+          .map((filtered) =>
+            filtered.nPMIValue === null ? Infinity : filtered.nPMIValue
+          )
+      );
     }
   }
-  return keys;
+  return extremeData;
 }
 
-function embeddingSort(
-  embeddingData: EmbeddingListing,
+function calculateDistances(
   keys: string[],
+  embeddingData: EmbeddingDataSet,
   sort: AnnotationSort
-): string[] {
-  switch (sort.order) {
-    case SortOrder.SIMILAR: {
-      const distance: {[annotation: string]: number} = {};
-      for (const annotation of keys) {
-        if (annotation === sort.metric) {
-          distance[annotation] = Number.NEGATIVE_INFINITY;
-        } else {
-          distance[annotation] = embeddingData[annotation]
-            ? calculateDistance(
-                embeddingData[sort.metric].vector,
-                embeddingData[annotation].vector
-              )
-            : Number.POSITIVE_INFINITY;
-        }
-      }
-      keys = keys.sort((a, b) => {
-        return distance[a] - distance[b];
-      });
-      break;
-    }
-    case SortOrder.DISSIMILAR: {
-      const distance: {[annotation: string]: number} = {};
-      for (const annotation of keys) {
-        if (annotation === sort.metric) {
-          distance[annotation] = Number.POSITIVE_INFINITY;
-        } else {
-          distance[annotation] = embeddingData[annotation]
-            ? calculateDistance(
-                embeddingData[sort.metric].vector,
-                embeddingData[annotation].vector,
-                Number.NEGATIVE_INFINITY
-              )
-            : Number.NEGATIVE_INFINITY;
-        }
-      }
-      keys = keys.sort((a, b) => {
-        return distance[b] - distance[a];
-      });
-      break;
+) {
+  const distances: {[annotation: string]: number} = {};
+  let sameDistance = Number.POSITIVE_INFINITY;
+  let extremeDistance = Number.NEGATIVE_INFINITY;
+  if (sort.order === SortOrder.SIMILAR) {
+    sameDistance = Number.NEGATIVE_INFINITY;
+    extremeDistance = Number.POSITIVE_INFINITY;
+  }
+  for (const annotation of keys) {
+    if (annotation === sort.metric) {
+      distances[annotation] = sameDistance;
+    } else {
+      distances[annotation] = embeddingData.points[annotation].vector
+        ? calculateEmbeddingSimilarity(
+            embeddingData.points[sort.metric].vector,
+            embeddingData.points[annotation].vector,
+            extremeDistance
+          )
+        : extremeDistance;
     }
   }
-  return keys;
+  return distances;
 }
 
-function calculateDistance(
+function calculateEmbeddingSimilarity(
   reference: number[],
   toEmbedding: number[],
-  faultCase: number = Number.POSITIVE_INFINITY
+  faultCase: number
 ): number {
   if (reference.length != toEmbedding.length) return faultCase;
-  const subtracted = toEmbedding.map((i, n) => i - reference[n]);
+  const subtracted = toEmbedding.map((value, key) => value - reference[key]);
   const powered = subtracted.map((e) => Math.pow(e, 2));
-  const sum = powered.reduce((total, current) => total + current, 0);
-  return Math.sqrt(sum);
+  return powered.reduce((total, current) => total + current, 0);
 }

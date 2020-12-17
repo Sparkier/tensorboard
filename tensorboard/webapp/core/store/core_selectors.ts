@@ -26,7 +26,6 @@ import {Run, RunId} from '../types';
 // HACK: These imports are for type inference.
 // https://github.com/bazelbuild/rules_nodejs/issues/1013
 /** @typehack */ import * as _typeHackSelector from '@ngrx/store/src/selector';
-/** @typehack */ import * as _typeHackStore from '@ngrx/store/store';
 
 const selectCoreState = createFeatureSelector<State, CoreState>(
   CORE_FEATURE_KEY
@@ -76,37 +75,5 @@ export const getPageSize = createSelector(
   selectCoreState,
   (state: CoreState): number => {
     return state.pageSize;
-  }
-);
-
-export const getRuns = createSelector(
-  selectCoreState,
-  (state: CoreState): Run[] => {
-    return state.polymerInteropRuns;
-  }
-);
-
-const selectSelection = createSelector(
-  selectCoreState,
-  (state: CoreState): Set<RunId> => {
-    return state.polymerInteropRunSelection;
-  }
-);
-
-/**
- * runSelection can be `null` when information is yet missing; e.g., run selection for an
- * experiment that is not yet fetched.
- */
-export const getRunSelection = createSelector(
-  getRuns,
-  selectSelection,
-  (runs: Run[], selection: Set<RunId>): Map<RunId, boolean> | null => {
-    const runSelection = new Map();
-
-    for (const {id} of runs) {
-      runSelection.set(id, selection.has(id));
-    }
-
-    return runSelection;
   }
 );

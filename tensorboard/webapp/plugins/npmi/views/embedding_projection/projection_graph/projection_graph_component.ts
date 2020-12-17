@@ -163,7 +163,7 @@ export class ProjectionGraphComponent implements AfterViewInit, OnChanges {
       minY = Infinity,
       maxY = -Infinity;
     if (this.embeddingDataSet.projections[this.projection]) {
-      this.embeddingDataSet.pointKeys.map((key) => {
+      this.embeddingDataSet.pointKeys.forEach((key) => {
         if (
           this.filteredAnnotations[key] &&
           this.embeddingDataSet.points[key].projections[`${this.projection}-0`]

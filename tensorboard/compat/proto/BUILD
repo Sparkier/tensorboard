@@ -7,7 +7,10 @@ package(default_visibility = ["//tensorboard:internal"])
 
 licenses(["notice"])
 
-exports_files(["LICENSE"])
+filegroup(
+    name = "proto_srcs",
+    srcs = glob(["*.proto"]),
+)
 
 # Protobuf files copied from the main TensorFlow repository.
 # Keep this list synced with proto_test.py
@@ -52,7 +55,7 @@ py_test(
     name = "proto_test",
     size = "small",
     srcs = ["proto_test.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     tags = [
         "manual",
         "notap",

@@ -26,7 +26,7 @@ describe('sort annotations utils', () => {
     const annotationData: AnnotationDataListing = buildSampleAnnotationData();
     const sort: AnnotationSort = {
       metric: 'nPMI@test',
-      order: SortOrder.UP,
+      order: SortOrder.ASCENDNG,
     };
     const annotations = sortAnnotations(annotationData, sort, {});
     expect(annotations).toEqual([
@@ -40,7 +40,7 @@ describe('sort annotations utils', () => {
     const annotationData: AnnotationDataListing = buildSampleAnnotationData();
     const sort: AnnotationSort = {
       metric: 'nPMI@test',
-      order: SortOrder.DOWN,
+      order: SortOrder.DESCENDING,
     };
     const annotations = sortAnnotations(annotationData, sort, {});
     expect(annotations).toEqual([
@@ -57,9 +57,7 @@ describe('sort annotations utils', () => {
       order: SortOrder.SIMILAR,
     };
     const embeddingData: EmbeddingListing = {
-      annotation_1: {
-        vector: [0.5],
-      },
+      annotation_1: [0.5],
       annotation_2: [-0.2],
       annotation_3: [0.1],
     };
@@ -108,6 +106,24 @@ describe('sort annotations utils', () => {
     ]);
   });
 
+  it('does not sort annotations by similar embeddings if selected annotation not containing an embedding', () => {
+    const annotationData: AnnotationDataListing = buildSampleAnnotationData();
+    const sort: AnnotationSort = {
+      metric: 'annotation_1',
+      order: SortOrder.SIMILAR,
+    };
+    const embeddingData: EmbeddingListing = {
+      annotation_2: [0.5],
+      annotation_3: [0.1],
+    };
+    const annotations = sortAnnotations(annotationData, sort, embeddingData);
+    expect(annotations).toEqual([
+      'annotation_1',
+      'annotation_2',
+      'annotation_3',
+    ]);
+  });
+
   it('sorts annotations by dissimilar embeddings with empty embedding', () => {
     const annotationData: AnnotationDataListing = buildSampleAnnotationData();
     const sort: AnnotationSort = {
@@ -130,7 +146,7 @@ describe('sort annotations utils', () => {
     const annotationData: AnnotationDataListing = buildSampleAnnotationData();
     const sort: AnnotationSort = {
       metric: '',
-      order: SortOrder.UP,
+      order: SortOrder.ASCENDNG,
     };
     const annotations = sortAnnotations(annotationData, sort, {});
     expect(annotations).toEqual([

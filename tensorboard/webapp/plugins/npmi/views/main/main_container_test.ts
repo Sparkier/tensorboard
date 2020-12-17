@@ -22,7 +22,7 @@ import {Store, Action} from '@ngrx/store';
 import {provideMockStore, MockStore} from '@ngrx/store/testing';
 
 import {State} from '../../../../app_state';
-import {getRunSelection} from './../../../../core/store/core_selectors';
+import {getCurrentRouteRunSelection} from './../../../../selectors';
 import {getSidebarExpanded} from '../../store';
 import {appStateFromNpmiState, createNpmiState} from '../../testing';
 import {createState, createCoreState} from '../../../../core/testing';
@@ -31,6 +31,7 @@ import {MainContainer} from './main_container';
 import * as npmiActions from '../../actions';
 
 /** @typehack */ import * as _typeHackStore from '@ngrx/store';
+import {NO_ERRORS_SCHEMA} from '@angular/core';
 
 describe('Npmi Main Container', () => {
   let store: MockStore<State>;
@@ -41,7 +42,7 @@ describe('Npmi Main Container', () => {
     SIDE_TOGGLE: By.css('.side-toggle'),
     GRABBER: By.css('.grabber'),
     CONTENT: By.css('.content'),
-    RUN_SELECTOR: By.css('tb-legacy-runs-selector'),
+    RUN_SELECTOR: By.css('runs-selector'),
     BUTTON: By.css('button'),
   };
 
@@ -57,8 +58,10 @@ describe('Npmi Main Container', () => {
           },
         }),
       ],
+      schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
     store = TestBed.inject<Store<State>>(Store) as MockStore<State>;
+    store.overrideSelector(getCurrentRouteRunSelection, new Map());
 
     dispatchedActions = [];
     spyOn(store, 'dispatch').and.callFake((action: Action) => {
@@ -67,7 +70,7 @@ describe('Npmi Main Container', () => {
   });
 
   it('renders npmi main component without runs', () => {
-    store.overrideSelector(getRunSelection, new Map());
+    store.overrideSelector(getCurrentRouteRunSelection, new Map());
     const fixture = TestBed.createComponent(MainContainer);
     fixture.detectChanges();
 
@@ -79,7 +82,10 @@ describe('Npmi Main Container', () => {
   });
 
   it('renders npmi main component with run', () => {
-    store.overrideSelector(getRunSelection, new Map([['run_1', true]]));
+    store.overrideSelector(
+      getCurrentRouteRunSelection,
+      new Map([['run_1', true]])
+    );
     const fixture = TestBed.createComponent(MainContainer);
     fixture.detectChanges();
 
@@ -91,7 +97,10 @@ describe('Npmi Main Container', () => {
   });
 
   it('renders npmi main component without active run', () => {
-    store.overrideSelector(getRunSelection, new Map([['run_1', false]]));
+    store.overrideSelector(
+      getCurrentRouteRunSelection,
+      new Map([['run_1', false]])
+    );
     const fixture = TestBed.createComponent(MainContainer);
     fixture.detectChanges();
 
@@ -104,7 +113,7 @@ describe('Npmi Main Container', () => {
 
   it('renders npmi main component with multiple runs, some active, some inactive', () => {
     store.overrideSelector(
-      getRunSelection,
+      getCurrentRouteRunSelection,
       new Map([
         ['run_1', false],
         ['run_2', true],
@@ -167,7 +176,7 @@ describe('Npmi Main Container', () => {
     const contentElement = fixture.debugElement.query(css.CONTENT);
     contentElement.triggerEventHandler('mousemove', {clientX: 50});
     expect(dispatchedActions).toEqual([
-      npmiActions.npmiChangeSidebarWidth({sidebarWidth: 50}),
+      npmiActions.npmiSidebarWidthChanged({sidebarWidth: 50}),
     ]);
   });
 

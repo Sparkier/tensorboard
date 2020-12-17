@@ -5,12 +5,10 @@ package(default_visibility = ["//tensorboard:internal"])
 
 licenses(["notice"])
 
-exports_files(["LICENSE"])
-
 py_library(
     name = "core_plugin",
     srcs = ["core_plugin.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//tensorboard:plugin_util",
         "//tensorboard/backend:http_util",
@@ -25,7 +23,7 @@ py_test(
     name = "core_plugin_test",
     size = "small",
     srcs = ["core_plugin_test.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":core_plugin",
         "//tensorboard:expect_tensorflow_installed",

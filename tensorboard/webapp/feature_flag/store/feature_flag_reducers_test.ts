@@ -13,42 +13,74 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 import * as actions from '../actions/feature_flag_actions';
+import {buildFeatureFlag} from '../testing';
 import {reducers} from './feature_flag_reducers';
 import {buildFeatureFlagState} from './testing';
 
 describe('feature_flag_reducers', () => {
   describe('featuresLoaded', () => {
-    it('sets the new feature flags onto the state', () => {
+    it('sets isFeatureFlagsLoaded to true', () => {
       const prevState = buildFeatureFlagState({
-        enabledExperimentalPlugins: ['foo'],
+        isFeatureFlagsLoaded: false,
       });
       const nextState = reducers(
         prevState,
-        actions.featuresLoaded({
+        actions.partialFeatureFlagsLoaded({features: {}})
+      );
+
+      expect(nextState).toEqual(
+        buildFeatureFlagState({
+          isFeatureFlagsLoaded: true,
+        })
+      );
+    });
+
+    it('sets the new feature flags onto the state', () => {
+      const prevState = buildFeatureFlagState({
+        isFeatureFlagsLoaded: false,
+        features: buildFeatureFlag({
+          enabledExperimentalPlugins: ['foo'],
+        }),
+      });
+      const nextState = reducers(
+        prevState,
+        actions.partialFeatureFlagsLoaded({
           features: {
             enabledExperimentalPlugins: ['foo', 'bar'],
           },
         })
       );
 
-      expect(nextState.enabledExperimentalPlugins).toEqual(['foo', 'bar']);
+      expect(nextState.features).toEqual(
+        buildFeatureFlag({
+          enabledExperimentalPlugins: ['foo', 'bar'],
+        })
+      );
     });
 
-    it('sets the feature value of other features', () => {
+    it('ignores unspecified feature flags', () => {
       const prevState = buildFeatureFlagState({
-        enabledExperimentalPlugins: [],
+        isFeatureFlagsLoaded: false,
+        features: buildFeatureFlag({
+          enabledExperimentalPlugins: ['foo'],
+          inColab: true,
+        }),
       });
       const nextState = reducers(
         prevState,
-        actions.featuresLoaded({
+        actions.partialFeatureFlagsLoaded({
           features: {
-            enabledExperimentalPlugins: [],
-            enableMagicalFeature: true,
+            inColab: false,
           },
         })
       );
 
-      expect(nextState['enableMagicalFeature']).toBe(true);
+      expect(nextState.features).toEqual(
+        buildFeatureFlag({
+          enabledExperimentalPlugins: ['foo'],
+          inColab: false,
+        })
+      );
     });
   });
 });

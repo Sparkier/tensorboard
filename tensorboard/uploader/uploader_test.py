@@ -21,7 +21,6 @@ from __future__ import print_function
 import itertools
 import os
 import re
-import sys
 
 import grpc
 import grpc_testing
@@ -43,13 +42,10 @@ from tensorboard.uploader.proto import scalar_pb2
 from tensorboard.uploader.proto import server_info_pb2
 from tensorboard.uploader.proto import write_service_pb2
 from tensorboard.uploader.proto import write_service_pb2_grpc
-from tensorboard.uploader import dry_run_stubs
 from tensorboard.uploader import test_util
 from tensorboard.uploader import upload_tracker
 from tensorboard.uploader import uploader as uploader_lib
-from tensorboard.uploader import uploader_subcommand
 from tensorboard.uploader import logdir_loader
-from tensorboard.uploader import server_info as server_info_lib
 from tensorboard.uploader import util
 from tensorboard.compat.proto import event_pb2
 from tensorboard.compat.proto import graph_pb2
@@ -177,7 +173,9 @@ def _create_uploader(
 
 
 def _create_request_sender(
-    experiment_id=None, api=None, allowed_plugins=_USE_DEFAULT,
+    experiment_id=None,
+    api=None,
+    allowed_plugins=_USE_DEFAULT,
 ):
     if api is _USE_DEFAULT:
         api = _create_mock_client()
@@ -304,7 +302,8 @@ class TensorboardUploaderTest(tf.test.TestCase):
         (args, _) = mock_client.CreateExperiment.call_args
 
         expected_request = write_service_pb2.CreateExperimentRequest(
-            name=new_name, description=new_description,
+            name=new_name,
+            description=new_description,
         )
         self.assertEqual(args[0], expected_request)
 
@@ -547,7 +546,8 @@ class TensorboardUploaderTest(tf.test.TestCase):
             actual_graph_def = graph_pb2.GraphDef.FromString(data)
             self.assertProtoEquals(expected_graph_def, actual_graph_def)
             self.assertEqual(
-                set(r.blob_sequence_id for r in requests), {"blob%d" % i},
+                set(r.blob_sequence_id for r in requests),
+                {"blob%d" % i},
             )
         self.assertEqual(0, mock_rate_limiter.tick.call_count)
         self.assertEqual(0, mock_tensor_rate_limiter.tick.call_count)
@@ -615,7 +615,9 @@ class TensorboardUploaderTest(tf.test.TestCase):
         limiter.tick.side_effect = [None, AbortUploadError]
         mock_client = _create_mock_client()
         uploader = _create_uploader(
-            mock_client, logdir, logdir_poll_rate_limiter=limiter,
+            mock_client,
+            logdir,
+            logdir_poll_rate_limiter=limiter,
         )
         uploader.create_experiment()
 
@@ -742,12 +744,13 @@ class TensorboardUploaderTest(tf.test.TestCase):
             pass
 
         mock_rate_limiter = mock.create_autospec(util.RateLimiter)
-        upload_call_count_box = [0]
+        upload_call_count = 0
 
         def mock_upload_once():
-            upload_call_count_box[0] += 1
+            nonlocal upload_call_count
+            upload_call_count += 1
             tick_count = mock_rate_limiter.tick.call_count
-            self.assertEqual(tick_count, upload_call_count_box[0])
+            self.assertEqual(tick_count, upload_call_count)
             if tick_count >= 3:
                 raise Success()
 
@@ -1077,7 +1080,8 @@ class ScalarBatchedRequestSenderTest(tf.test.TestCase):
     def _add_events_and_flush(self, events):
         mock_client = _create_mock_client()
         sender = _create_scalar_request_sender(
-            experiment_id="123", api=mock_client,
+            experiment_id="123",
+            api=mock_client,
         )
         self._add_events(sender, "", events)
         sender.flush()
@@ -1349,17 +1353,20 @@ class ScalarBatchedRequestSenderTest(tf.test.TestCase):
         event_2 = event_pb2.Event(step=2)
         event_2.summary.value.add(tag="bar", simple_value=-2.0)
 
-        add_point_call_count_box = [0]
+        add_point_call_count = 0
 
         def mock_add_point(byte_budget_manager_self, point):
             # Simulate out-of-space error the first time that we try to store
             # the second point.
-            add_point_call_count_box[0] += 1
-            if add_point_call_count_box[0] == 2:
+            nonlocal add_point_call_count
+            add_point_call_count += 1
+            if add_point_call_count == 2:
                 raise uploader_lib._OutOfSpaceError()
 
         with mock.patch.object(
-            uploader_lib._ByteBudgetManager, "add_point", mock_add_point,
+            uploader_lib._ByteBudgetManager,
+            "add_point",
+            mock_add_point,
         ):
             sender = _create_scalar_request_sender("123", mock_client)
             self._add_events(sender, "train", _apply_compat([event_1]))
@@ -1793,17 +1800,20 @@ class TensorBatchedRequestSenderTest(tf.test.TestCase):
             ),
         )
 
-        add_point_call_count_box = [0]
+        add_point_call_count = 0
 
         def mock_add_point(byte_budget_manager_self, point):
             # Simulate out-of-space error the first time that we try to store
             # the second point.
-            add_point_call_count_box[0] += 1
-            if add_point_call_count_box[0] == 2:
+            nonlocal add_point_call_count
+            add_point_call_count += 1
+            if add_point_call_count == 2:
                 raise uploader_lib._OutOfSpaceError()
 
         with mock.patch.object(
-            uploader_lib._ByteBudgetManager, "add_point", mock_add_point,
+            uploader_lib._ByteBudgetManager,
+            "add_point",
+            mock_add_point,
         ):
             sender = _create_tensor_request_sender("123", mock_client)
             self._add_events(sender, "train", _apply_compat([event_1]))
@@ -1987,87 +1997,6 @@ class VarintCostTest(tf.test.TestCase):
         self.assertEqual(uploader_lib._varint_cost(128), 2)
         self.assertEqual(uploader_lib._varint_cost(128 * 128 - 1), 2)
         self.assertEqual(uploader_lib._varint_cost(128 * 128), 3)
-
-
-class UploadIntentTest(tf.test.TestCase):
-    def testUploadIntentUnderDryRunOneShot(self):
-        """Test the upload intent under the dry-run + one-shot mode."""
-        mock_server_info = mock.MagicMock()
-        mock_channel = mock.MagicMock()
-        upload_limits = server_info_pb2.UploadLimits(
-            max_scalar_request_size=128000,
-            max_tensor_request_size=128000,
-            max_tensor_point_size=11111,
-            max_blob_request_size=128000,
-            max_blob_size=128000,
-        )
-        mock_stdout_write = mock.MagicMock()
-        with mock.patch.object(
-            server_info_lib,
-            "allowed_plugins",
-            return_value=_SCALARS_HISTOGRAMS_AND_GRAPHS,
-        ), mock.patch.object(
-            server_info_lib, "upload_limits", return_value=upload_limits
-        ), mock.patch.object(
-            sys.stdout, "write", mock_stdout_write
-        ), mock.patch.object(
-            dry_run_stubs,
-            "DryRunTensorBoardWriterStub",
-            side_effect=dry_run_stubs.DryRunTensorBoardWriterStub,
-        ) as mock_dry_run_stub:
-            intent = uploader_subcommand.UploadIntent(
-                self.get_temp_dir(), dry_run=True, one_shot=True
-            )
-            intent.execute(mock_server_info, mock_channel)
-        self.assertEqual(mock_dry_run_stub.call_count, 1)
-        self.assertRegex(
-            mock_stdout_write.call_args_list[-2][0][0],
-            ".*Done scanning logdir.*",
-        )
-        self.assertEqual(
-            mock_stdout_write.call_args_list[-1][0][0], "\nDone.\n"
-        )
-
-    def testUploadIntentDryRunNonOneShotInterrupted(self):
-        mock_server_info = mock.MagicMock()
-        mock_channel = mock.MagicMock()
-        mock_stdout_write = mock.MagicMock()
-        mock_uploader = mock.MagicMock()
-        with mock.patch.object(
-            mock_uploader, "start_uploading", side_effect=KeyboardInterrupt(),
-        ), mock.patch.object(
-            uploader_lib, "TensorBoardUploader", return_value=mock_uploader
-        ), mock.patch.object(
-            sys.stdout, "write", mock_stdout_write
-        ):
-            intent = uploader_subcommand.UploadIntent(
-                self.get_temp_dir(), dry_run=True, one_shot=False
-            )
-            intent.execute(mock_server_info, mock_channel)
-        self.assertEqual(
-            mock_stdout_write.call_args_list[-1][0][0], "\nInterrupted.\n"
-        )
-
-    def testUploadIntentNonDryRunNonOneShotInterrupted(self):
-        mock_server_info = mock.MagicMock()
-        mock_channel = mock.MagicMock()
-        mock_stdout_write = mock.MagicMock()
-        mock_uploader = mock.MagicMock()
-        with mock.patch.object(
-            mock_uploader, "start_uploading", side_effect=KeyboardInterrupt(),
-        ), mock.patch.object(
-            uploader_lib, "TensorBoardUploader", return_value=mock_uploader
-        ), mock.patch.object(
-            sys.stdout, "write", mock_stdout_write
-        ):
-            intent = uploader_subcommand.UploadIntent(
-                self.get_temp_dir(), dry_run=False, one_shot=False
-            )
-            intent.execute(mock_server_info, mock_channel)
-        self.assertIn(
-            "\nInterrupted. View your TensorBoard at ",
-            mock_stdout_write.call_args_list[-1][0][0],
-        )
 
 
 def _clear_wall_times(request):

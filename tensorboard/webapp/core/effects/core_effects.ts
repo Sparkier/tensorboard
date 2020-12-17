@@ -15,7 +15,7 @@ limitations under the License.
 import {Injectable} from '@angular/core';
 import {Store} from '@ngrx/store';
 import {Actions, ofType, createEffect} from '@ngrx/effects';
-import {EMPTY, zip} from 'rxjs';
+import {EMPTY, from, zip} from 'rxjs';
 import {
   map,
   mergeMap,
@@ -34,7 +34,6 @@ import {
   pluginsListingRequested,
   pluginsListingLoaded,
   pluginsListingFailed,
-  fetchRunSucceeded,
   changePlugin,
 } from '../actions';
 import {getPluginsListLoaded, getActivePlugin} from '../store';
@@ -48,11 +47,29 @@ import {getEnabledExperimentalPlugins} from '../../feature_flag/store/feature_fl
 import {State} from '../../app_state';
 
 /** @typehack */ import * as _typeHackRxjs from 'rxjs';
-/** @typehack */ import * as _typeHackNgrx from '@ngrx/store/src/models';
 /** @typehack */ import * as _typeHackNgrxEffects from '@ngrx/effects';
 
 @Injectable()
 export class CoreEffects {
+  // Ngrx assumes all Effect classes have properties that inherit from the base
+  // JS Object. `tf_backend` does not, so we wrap it.
+  private readonly tfBackend = {
+    ref: (document.createElement('tf-backend') as any).tf_backend,
+  };
+
+  /**
+   * Force a data load for the Polymer-specific portion of the app. This leads
+   * to duplicate requests but hopefully the state is temporary until we migrate
+   * everything from Polymer to Angular.
+   *
+   * This is intentionally called in core/ rather than runs/ so that TB
+   * embedders may use runs outside of the core dashboard page, without relying
+   * on the Polymer runsStore.
+   */
+  private refreshPolymerRuns() {
+    return from(this.tfBackend.ref.runsStore.refresh());
+  }
+
   /**
    * Requires to be exported for JSCompiler. JSCompiler, otherwise,
    * think it is unused property and deadcode eliminate away.
@@ -74,7 +91,7 @@ export class CoreEffects {
               enabledExperimentalPlugins
             ),
             this.fetchEnvironment(),
-            this.fetchRuns()
+            this.refreshPolymerRuns()
           ).pipe(
             map(([plugins]) => {
               this.store.dispatch(pluginsListingLoaded({plugins}));
@@ -141,12 +158,4 @@ export class CoreEffects {
     private store: Store<State>,
     private webappDataSource: TBServerDataSource
   ) {}
-
-  private fetchRuns() {
-    return this.webappDataSource.fetchRuns().pipe(
-      tap((runs) => {
-        this.store.dispatch(fetchRunSucceeded({runs}));
-      })
-    );
-  }
 }

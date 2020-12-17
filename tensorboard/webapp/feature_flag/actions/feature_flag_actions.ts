@@ -15,14 +15,21 @@ limitations under the License.
 
 import {createAction, props} from '@ngrx/store';
 
-import {FeatureValue} from '../types';
+import {FeatureFlags} from '../types';
 
-/** @typehack */ import * as _typeHackStore from '@ngrx/store/store';
+/** @typehack */ import * as _typeHackStore from '@ngrx/store';
 /** @typehack */ import * as _typeHackStoreModel from '@ngrx/store/src/models';
 
-export const featuresLoaded = createAction(
-  '[FEATURE FLAG] Features Loaded',
+/**
+ * Signals that a data source has loaded feature flag values.
+ *
+ * Some or all feature flag properties can be unspecified if the data source
+ * does not have enough information to provide values. In that case, the
+ * corresponding feature flag values should remain unchanged in the State.
+ */
+export const partialFeatureFlagsLoaded = createAction(
+  '[FEATURE FLAG] Partial Feature Flags Loaded',
   props<{
-    features: {[featureKey: string]: FeatureValue};
+    features: Partial<FeatureFlags>;
   }>()
 );

@@ -1,4 +1,4 @@
-# TensorBoard [![Travis build status](https://travis-ci.org/tensorflow/tensorboard.svg?branch=master)](https://travis-ci.org/tensorflow/tensorboard/) [![GitHub Actions CI](https://github.com/tensorflow/tensorboard/workflows/CI/badge.svg)](https://github.com/tensorflow/tensorboard/actions?query=workflow%3ACI+branch%3Amaster+event%3Apush) [![Compat check PyPI](https://python-compatibility-tools.appspot.com/one_badge_image?package=tensorboard)](https://python-compatibility-tools.appspot.com/one_badge_target?package=tensorboard)
+# TensorBoard [![GitHub Actions CI](https://github.com/tensorflow/tensorboard/workflows/CI/badge.svg)](https://github.com/tensorflow/tensorboard/actions?query=workflow%3ACI+branch%3Amaster+event%3Apush) [![Compat check PyPI](https://python-compatibility-tools.appspot.com/one_badge_image?package=tensorboard)](https://python-compatibility-tools.appspot.com/one_badge_target?package=tensorboard)
 
 TensorBoard is a suite of web applications for inspecting and understanding your
 TensorFlow runs and graphs.
@@ -338,7 +338,7 @@ download links for the data it contains.
 
 If you need access to the full dataset, you can read the event files that
 TensorBoard consumes by using the [`summary_iterator`](
-https://www.tensorflow.org/api_docs/python/tf/train/summary_iterator)
+https://www.tensorflow.org/api_docs/python/tf/compat/v1/train/summary_iterator)
 method.
 
 ### Can I make my own plugin?
