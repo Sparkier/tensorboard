@@ -216,7 +216,11 @@ export class ViolinFilterComponent implements AfterViewInit, OnChanges {
   updateAxes() {
     this.xScale
       .range([0, this.drawWidth])
-      .domain(Object.keys(this.chartData.violinData));
+      .domain(
+        Object.keys(this.chartData.violinData).map((d) =>
+          d.split('/').slice(1).join()
+        )
+      );
 
     this.yScale.domain([
       this.chartData.extremes.min,
@@ -290,7 +294,9 @@ export class ViolinFilterComponent implements AfterViewInit, OnChanges {
           this: ViolinFilterComponent,
           d: [string, ViolinBin[]]
         ): string {
-          return `translate(${this.xScale(d[0])}, 0)`;
+          return `translate(${this.xScale(
+            d[0].split('/').slice(1).join()
+          )}, 0)`;
         }.bind(this)
       )
       .datum(function (d: [string, ViolinBin[]]): ViolinBin[] {
@@ -305,7 +311,9 @@ export class ViolinFilterComponent implements AfterViewInit, OnChanges {
           this: ViolinFilterComponent,
           d: [string, ViolinBin[]]
         ): string {
-          return `translate(${this.xScale(d[0])}, 0)`;
+          return `translate(${this.xScale(
+            d[0].split('/').slice(1).join()
+          )}, 0)`;
         }.bind(this)
       )
       .datum(function (d: [string, ViolinBin[]]): ViolinBin[] {
